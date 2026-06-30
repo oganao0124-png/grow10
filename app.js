@@ -272,7 +272,8 @@ function updateProgressLabel(val) {
 
 function saveMonthlyGoal() {
   const text     = document.getElementById('monthly-goal-text').value;
-  const progress = parseInt(document.getElementById('goal-progress-slider').value);
+  const slider   = document.getElementById('goal-progress-slider');
+  const progress = slider ? parseInt(slider.value) : 0;
   saveGoal(currentUser.id, selectedMonth, text, progress);
   showToast('💾 目標を保存しました！');
 }
