@@ -10,6 +10,23 @@
 </head>
 <body>
 
+  <!-- ローディングバナー：スプレッドシートからデータ取得中に表示 -->
+  <div id="eval-loading-banner" style="
+    display:none; position:fixed; top:0; left:0; right:0; z-index:9999;
+    background:linear-gradient(90deg,#6366f1,#a78bfa);
+    color:#fff; font-size:0.85rem; font-weight:600;
+    align-items:center; justify-content:center; gap:10px;
+    padding:10px; text-align:center;
+    box-shadow:0 2px 12px rgba(99,102,241,0.4);
+  ">
+    <span id="loading-spinner" style="display:inline-block;">⟳</span>
+    スプレッドシートから最新の評価データを取得中...
+  </div>
+  <style>
+    #loading-spinner { animation: grow10spin 1s linear infinite; }
+    @keyframes grow10spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  </style>
+
   <!-- Sidebar Navigation -->
   <aside>
     <div class="brand">
@@ -85,7 +102,7 @@
           <div class="banner-icon">🔥</div>
           <div class="banner-content">
             <div class="banner-title">今月の全体目標</div>
-            <div class="banner-text">正確さと明るさを意識する！</div>
+            <div class="banner-text">全員で月間総フィードバック数300件を達成し、圧倒的な成長環境を創る！</div>
           </div>
         </div>
 
@@ -107,23 +124,24 @@
               </button>
             </div>
 
-            <!-- Monthly Goal Card -->
+            <!-- Monthly Goal & GROW Reflection Card -->
             <div class="card">
-              <h2 class="card-title">🎯 今月の個人目標</h2>
+              <h2 class="card-title">🎯 今月の個人目標とGROW振り返り</h2>
               <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
-                今月取り組む目標を設定しましょう。
+                目標を設定し、定期的に振り返り(GROWモデル)を行いましょう。
               </p>
               <textarea id="monthly-goal-text" class="goal-input-area" placeholder="今月取り組む目標を入力してください..."></textarea>
-              <button class="btn-primary" style="width: 100%; margin-top: 1rem;" onclick="saveMonthlyGoal()">💾 目標を保存</button>
-            </div>
-            
-            <!-- GROW Reflection Card -->
-            <div class="card">
-              <h2 class="card-title">🌱 GROW振り返り</h2>
-              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
-                目標に対して定期的に振り返り(GROWモデル)を行いましょう。
-              </p>
-              <button class="btn-secondary" style="width: 100%;" onclick="openGrowModal()">🌱 振り返る(GROW)</button>
+              
+              <div class="progress-container">
+                <span class="progress-label">現在の自己達成度:</span>
+                <input type="range" id="goal-progress-slider" min="0" max="100" value="0" oninput="updateProgressLabel(this.value)">
+                <span class="progress-label" id="progress-val">0%</span>
+              </div>
+              
+              <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button class="btn-primary" style="flex: 1;" onclick="saveMonthlyGoal()">💾 目標を保存</button>
+                <button class="btn-secondary" style="flex: 1;" onclick="openGrowModal()">🌱 振り返る(GROW)</button>
+              </div>
             </div>
           </div>
 
@@ -157,12 +175,40 @@
 
       <!-- ================= TAB 2: INDIVIDUAL SCORECARD ================= -->
       <section id="tab-scorecard" class="tab-pane">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;">
           <h2 style="font-family: var(--font-header);">個人成績詳細</h2>
-          <div class="select-wrapper">
-            <select id="scorecard-member-select" onchange="onScorecardMemberChange()" style="min-width: 180px;">
-            </select>
+          <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <div class="select-wrapper">
+              <select id="scorecard-member-select" onchange="onScorecardMemberChange()" style="min-width: 180px;">
+              </select>
+            </div>
+            <!-- Squad member search -->
+            <div id="squad-search-box" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--border-radius-sm); padding: 0 12px; height: 42px; min-width: 280px; transition: border-color 0.22s;">
+              <span style="font-size: 1rem; color: var(--text-secondary);">🔍</span>
+              <input
+                id="squad-search-input"
+                type="text"
+                placeholder="部員番号 または 氏名で検索..."
+                autocomplete="off"
+                style="background: transparent; border: none; outline: none; color: var(--text-primary); font-family: var(--font-body); font-size: 0.88rem; width: 100%; caret-color: var(--accent-indigo);"
+                oninput="onSquadSearchInput(this.value)"
+                onkeydown="if(event.key==='Enter') onSquadSearchSubmit()"
+              >
+              <button
+                id="squad-search-btn"
+                onclick="onSquadSearchSubmit()"
+                style="background: var(--accent-indigo); color: #fff; border: none; border-radius: 6px; padding: 4px 12px; font-size: 0.8rem; font-family: var(--font-body); font-weight: 600; cursor: pointer; white-space: nowrap; transition: opacity 0.2s;"
+                onmouseenter="this.style.opacity='0.8'"
+                onmouseleave="this.style.opacity='1'"
+              >検索</button>
+            </div>
           </div>
+        </div>
+        <!-- Squad search result indicator -->
+        <div id="squad-search-result-bar" style="display:none; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding: 10px 16px; background: rgba(129,140,248,0.08); border: 1px solid rgba(129,140,248,0.25); border-radius: var(--border-radius-sm);">
+          <span style="color: var(--accent-indigo); font-size: 1rem;">👤</span>
+          <span id="squad-search-result-text" style="font-size: 0.88rem; color: var(--text-primary); flex: 1;"></span>
+          <button onclick="clearSquadSearch()" style="background: none; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: var(--text-secondary); padding: 3px 10px; font-size: 0.8rem; cursor: pointer;">✕ クリア</button>
         </div>
         <div class="card" style="margin-bottom: 1.5rem;">
           <div class="member-profile-card">
@@ -180,25 +226,29 @@
             </div>
           </div>
         </div>
-        <div class="grid-3" style="margin-bottom: 1.5rem;">
-          <div class="card" style="height: 380px;">
-            <h3 class="card-title">🕸️ レーダーチャート</h3>
-            <div style="height: 290px; position: relative;"><canvas id="scRadarChart"></canvas></div>
-          </div>
-          <div class="card" style="height: 380px;">
-            <h3 class="card-title">📊 スコア分布 (ヒストグラム)</h3>
-            <div style="height: 290px; position: relative;"><canvas id="scHistogramChart"></canvas></div>
-          </div>
-          <div class="card" style="height: 380px;">
-            <h3 class="card-title">📈 成長トレンド</h3>
-            <div style="height: 290px; position: relative;"><canvas id="scTrendChart"></canvas></div>
+        <div style="margin-bottom: 1.5rem;">
+          <div class="card" style="height: 500px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+              <h3 class="card-title" style="margin-bottom:0;">🕸️ レーダーチャート</h3>
+              <div style="display:flex;gap:0.4rem;" id="radar-toggle-btns">
+                <button id="radar-btn-overlay" onclick="setRadarMode('overlay')"
+                  style="padding:5px 14px;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;border:none;background:var(--accent-indigo);color:#fff;transition:all .2s;">
+                  個人 + 全体平均
+                </button>
+                <button id="radar-btn-solo" onclick="setRadarMode('solo')"
+                  style="padding:5px 14px;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:var(--text-secondary);transition:all .2s;">
+                  個人のみ
+                </button>
+              </div>
+            </div>
+            <div style="height:400px;position:relative;"><canvas id="scRadarChart"></canvas></div>
           </div>
         </div>
         <div class="card">
           <h3 class="card-title" style="margin-bottom: 1rem;">📋 10項目別スコア明細</h3>
           <table class="scores-table">
             <thead>
-              <tr><th>評価項目</th><th>あなたの点数</th><th>平均点との差</th><th>強み・課題</th></tr>
+              <tr><th>評価項目</th><th>スコア</th><th>全体平均との差</th></tr>
             </thead>
             <tbody id="sc-table-body"></tbody>
           </table>
@@ -394,35 +444,16 @@
   <div id="chigiri-modal" class="modal-overlay chigiri-overlay">
     <div class="chigiri-modal-content">
       <div class="chigiri-mascot">🦉</div>
-      <h2 class="chigiri-title" id="chigiri-title-text">おい、待てよ！</h2>
-      <p class="chigiri-desc" id="chigiri-desc-text">
-        ダッシュボードを見る前に、今後の<strong style="color:var(--accent-amber);">「契り（Chigiri）」</strong>を立てろ！<br>
+      <h2 class="chigiri-title">おい、待てよ！</h2>
+      <p class="chigiri-desc">
+        ダッシュボードを見る前に、今日の<strong style="color:var(--accent-amber);">「契り（Chigiri）」</strong>を立てろ！<br>
         成長の機会を逃すな！
       </p>
+      <input type="text" id="chigiri-input" class="chigiri-input" placeholder="例: 今日は絶対に発言する！" autocomplete="off">
+      <button class="chigiri-btn" onclick="submitChigiri()">契りを立てて進む 🔥</button>
       
-      <!-- Input Mode -->
-      <div id="chigiri-input-mode">
-        <input type="text" id="chigiri-input" class="chigiri-input" placeholder="例: 常に明るく発言する！" autocomplete="off">
-        <button class="chigiri-btn" onclick="submitChigiri()">契りを立てて進む 🔥</button>
-        <button class="chigiri-skip-btn" onclick="skipChigiri()">今はやめておく...</button>
-      </div>
-
-      <!-- Display Mode -->
-      <div id="chigiri-display-mode" style="display: none;">
-        <div id="chigiri-display-text" style="font-size: 1.25rem; font-weight: bold; margin: 1.5rem 0; color: var(--text-primary); background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;"></div>
-        <button class="chigiri-btn" onclick="skipChigiri()">確認して進む 🔥</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 5. Login Modal (背番号入力) -->
-  <div id="login-modal" class="modal-overlay login-overlay" style="display: flex; z-index: 9999;">
-    <div class="modal-content" style="max-width: 400px; text-align: center;">
-      <h2 style="font-family: var(--font-header); font-size: 1.8rem; margin-bottom: 10px; background: var(--gradient-brand); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">GROW10</h2>
-      <p style="color: var(--text-secondary); margin-bottom: 2rem;">背番号を入力してログインしてください</p>
-      <input type="number" id="login-id-input" class="goal-input-area" placeholder="例: 1" style="font-size: 1.5rem; text-align: center; margin-bottom: 1rem; padding: 12px;">
-      <p id="login-error-msg" style="color: var(--accent-rose); font-size: 0.85rem; margin-bottom: 1rem; display: none;">該当する背番号が見つかりません</p>
-      <button class="btn-primary" style="width: 100%; font-size: 1.1rem; padding: 12px;" onclick="handleLogin()">ログイン</button>
+      <!-- Hidden close button for user sanity if requested, but kept low visibility -->
+      <button class="chigiri-skip-btn" onclick="skipChigiri()">今はやめておく... (連続記録が途切れます)</button>
     </div>
   </div>
 

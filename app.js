@@ -8,7 +8,7 @@
 /* ─────────────────────────────────────────
    STATE
 ───────────────────────────────────────── */
-let currentUser      = null;
+let currentUser      = MEMBERS[0];
 let currentTab       = 'dashboard';
 let selectedMonth    = MONTHS[MONTHS.length - 1];
 let selectedProject  = '全体';
@@ -21,11 +21,11 @@ const _charts = {};   // Chart instance registry
    CHART THEME
 ───────────────────────────────────────── */
 const PROJECT_COLORS = {
-  'TAKEACTION': '#818cf8',
-  'FIZZ':       '#34d399',
-  'SUPERK':     '#fb7185',
-  '上回生':     '#fbbf24',
-  '4期生':      '#67e8f9',
+  'TAKEACTION': '#6366f1',
+  'FIZZ':       '#059669',
+  'コア':       '#e11d48',
+  '上回生':     '#d97706',
+  '4期生':      '#0284c7',
 };
 
 const BASE_OPTS = {
@@ -96,27 +96,16 @@ function _destroyChart(id) {
 /* ─────────────────────────────────────────
    BOOT
 ───────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', () => {
-  // ログインモーダルがデフォルトで表示されます
-});
+document.addEventListener('DOMContentLoaded', async () => {
+  // ── Loading banner ──────────────────────
+  const banner = document.getElementById('eval-loading-banner');
+  if (banner) banner.style.display = 'flex';
 
-function handleLogin() {
-  const inputEl = document.getElementById('login-id-input');
-  const errorMsg = document.getElementById('login-error-msg');
-  const idVal = parseInt(inputEl.value, 10);
-  
-  const member = MEMBERS.find(m => m.id === idVal);
-  if (!member) {
-    errorMsg.style.display = 'block';
-    return;
-  }
-  
-  errorMsg.style.display = 'none';
-  currentUser = member;
-  selectedScorecard = member.id;
-  
-  document.getElementById('login-modal').style.display = 'none';
-  
+  // ── Fetch latest evaluation data ────────
+  await loadEvaluationData();
+  if (banner) banner.style.display = 'none';
+
+  // ── App init ────────────────────────────
   _updateSidebarProfile();
   _initGlobalFilters();
   _initScorecardSelect();
@@ -126,10 +115,15 @@ function handleLogin() {
   _syncChigiriToUI();
   renderTab('dashboard');
 
+  // Trigger Chigiri modal automatically if not set for today
   setTimeout(() => {
-    openChigiriModal(false);
-  }, 100);
-}
+    const todayStr = new Date().toLocaleDateString('ja-JP');
+    const chigiri = loadChigiri(currentUser.id, todayStr);
+    if (!chigiri.text) {
+      openChigiriModal(false);
+    }
+  }, 500);
+});
 
 function _updateSidebarProfile() {
   const elAvatar = document.getElementById('current-user-avatar');
@@ -287,15 +281,15 @@ function updateProgressLabel(val) {
 
 function saveMonthlyGoal() {
   const text     = document.getElementById('monthly-goal-text').value;
-  const slider   = document.getElementById('goal-progress-slider');
-  const progress = slider ? parseInt(slider.value) : 0;
+  const progress = parseInt(document.getElementById('goal-progress-slider').value);
   saveGoal(currentUser.id, selectedMonth, text, progress);
   showToast('💾 目標を保存しました！');
 }
 
 /* Chigiri */
 function _syncChigiriToUI() {
-  const chigiri = loadChigiri(currentUser.id);
+  const todayStr = new Date().toLocaleDateString('ja-JP');
+  const chigiri = loadChigiri(currentUser.id, todayStr);
   const el = document.getElementById('current-chigiri-text');
   if (el) {
     el.textContent = chigiri.text ? `「${chigiri.text}」` : 'まだ契りが立てられていません。';
@@ -306,14 +300,30 @@ function _syncChigiriToUI() {
 /* ═══════════════════════════════════════
    TAB 2 — INDIVIDUAL SCORECARD
 ═══════════════════════════════════════ */
+/* ─────────────────────────────────────────
+   RADAR MODE TOGGLE
+───────────────────────────────────────── */
+let _radarMode = 'overlay'; // 'overlay' | 'solo'
+
+function setRadarMode(mode) {
+  _radarMode = mode;
+  const active   = 'padding:5px 14px;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;border:none;background:var(--accent-indigo);color:#fff;transition:all .2s;';
+  const inactive = 'padding:5px 14px;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:var(--text-secondary);transition:all .2s;';
+  document.getElementById('radar-btn-overlay').style.cssText = mode === 'overlay' ? active : inactive;
+  document.getElementById('radar-btn-solo').style.cssText    = mode === 'solo'    ? active : inactive;
+  if (_currentSquadMember) _renderScorecardForSquadMember(_currentSquadMember);
+  else                     _renderScorecard(selectedScorecard);
+}
+
+
 function _initScorecardSelect() {
   const select = document.getElementById('scorecard-member-select');
   let html = '';
   PROJECTS.forEach(proj => {
-    const mbs = MEMBERS.filter(m => m.project === proj);
+    const mbs = MEMBERS.filter(m => _memberInProject(m, proj));
     if (!mbs.length) return;
     html += `<optgroup label="${proj}">`;
-    mbs.forEach(m => { html += `<option value="${m.id}">${m.avatar} ${m.name}</option>`; });
+    mbs.forEach(m => { html += `<option value="${m.id}">${m.name}</option>`; });
     html += `</optgroup>`;
   });
   select.innerHTML = html;
@@ -321,25 +331,98 @@ function _initScorecardSelect() {
 }
 
 function onScorecardMemberChange() {
+  // Clear squad search when using the dropdown
+  clearSquadSearch(true);
   selectedScorecard = parseInt(document.getElementById('scorecard-member-select').value);
   _renderScorecard(selectedScorecard);
 }
 
-function _renderScorecard(memberId) {
-  const member = MEMBERS.find(m => m.id === memberId);
-  if (!member) return;
+/* ─────────────────────────────────────────
+   SQUAD MEMBER SEARCH (部員番号 / 氏名検索)
+───────────────────────────────────────── */
 
-  const color    = PROJECT_COLORS[member.project] || '#818cf8';
-  const scores   = getAggregatedScores(member.id, selectedMonth);
+/** Currently displayed squad member (if any). */
+let _currentSquadMember = null;
+
+function onSquadSearchInput(val) {
+  // Add visual focus indicator
+  const box = document.getElementById('squad-search-box');
+  if (box) {
+    box.style.borderColor = val
+      ? 'rgba(129,140,248,0.55)'
+      : 'rgba(255,255,255,0.08)';
+  }
+}
+
+function onSquadSearchSubmit() {
+  const input = document.getElementById('squad-search-input');
+  if (!input) return;
+  const query = input.value.trim();
+  if (!query) return;
+
+  const found = findSquadMember(query);
+  if (!found) {
+    _showSquadSearchBar(`「${_esc(query)}」に一致する部員が見つかりませんでした。`, false);
+    return;
+  }
+
+  _currentSquadMember = found;
+  _showSquadSearchBar(
+    `部員番号 <strong>${found.squadNumber}</strong> &nbsp;|&nbsp; <strong>${found.name}</strong> の個人成績を表示中`,
+    true
+  );
+  _renderScorecardForSquadMember(found);
+}
+
+function _showSquadSearchBar(html, isSuccess) {
+  const bar = document.getElementById('squad-search-result-bar');
+  const txt = document.getElementById('squad-search-result-text');
+  if (!bar || !txt) return;
+  txt.innerHTML = isSuccess
+    ? `✅ &nbsp;${html}`
+    : `❌ &nbsp;<span style="color:var(--accent-rose);">${html}</span>`;
+  bar.style.display = 'flex';
+  bar.style.borderColor = isSuccess
+    ? 'rgba(129,140,248,0.35)'
+    : 'rgba(251,113,133,0.35)';
+  bar.style.background = isSuccess
+    ? 'rgba(129,140,248,0.08)'
+    : 'rgba(251,113,133,0.07)';
+}
+
+function clearSquadSearch(silent) {
+  _currentSquadMember = null;
+  const input = document.getElementById('squad-search-input');
+  const bar   = document.getElementById('squad-search-result-bar');
+  const box   = document.getElementById('squad-search-box');
+  if (input) input.value = '';
+  if (bar)   bar.style.display = 'none';
+  if (box)   box.style.borderColor = 'rgba(255,255,255,0.08)';
+
+  if (!silent) {
+    // Re-render the currently selected dropdown member
+    selectedScorecard = parseInt(document.getElementById('scorecard-member-select').value);
+    _renderScorecard(selectedScorecard);
+  }
+}
+
+/**
+ * Render scorecard for a squad member (from SQUAD_MEMBERS list).
+ * Uses the same UI elements as _renderScorecard but with squad-member data.
+ */
+function _renderScorecardForSquadMember(squadMember) {
+  const color  = '#6366f1';
+  const scores = getEvaluationScores(squadMember.squadNumber)
+                 || getSquadMemberAggregatedScores(squadMember.squadNumber, selectedMonth);
   const groupAvg = getGroupAverages(selectedMonth);
 
   // Profile header
-  document.getElementById('sc-avatar').textContent  = member.avatar;
-  document.getElementById('sc-name').textContent    = member.name;
-  document.getElementById('sc-desc').textContent    = member.desc;
+  document.getElementById('sc-avatar').textContent  = '👤';
+  document.getElementById('sc-name').textContent    = squadMember.name;
+  document.getElementById('sc-desc').textContent    = `部員番号: ${squadMember.squadNumber}`;
 
   const badge = document.getElementById('sc-project-badge');
-  badge.textContent = member.project;
+  badge.textContent = 'WCP部員';
   badge.style.setProperty('--proj-c', color);
 
   const avg = scores
@@ -352,33 +435,33 @@ function _renderScorecard(memberId) {
 
   // ── Radar ──────────────────────────────
   _destroyChart('scRadarChart');
+  const sqDatasets = [
+    {
+      label: squadMember.name,
+      data: scoreVals,
+      borderColor: color,
+      backgroundColor: color + '28',
+      pointBackgroundColor: color,
+      pointRadius: 5,
+      borderWidth: 2.5,
+    },
+  ];
+  if (_radarMode === 'overlay') {
+    sqDatasets.push({
+      label: '全体平均',
+      data: Object.values(groupAvg),
+      borderColor: 'rgba(139,144,184,0.55)',
+      backgroundColor: 'rgba(139,144,184,0.07)',
+      pointBackgroundColor: 'rgba(139,144,184,0.55)',
+      pointRadius: 3,
+      borderWidth: 1.5,
+      borderDash: [5, 5],
+    });
+  }
   _charts['scRadarChart'] = new Chart(
     document.getElementById('scRadarChart').getContext('2d'), {
       type: 'radar',
-      data: {
-        labels: DIMENSIONS,
-        datasets: [
-          {
-            label: member.name,
-            data: scoreVals,
-            borderColor: color,
-            backgroundColor: color + '28',
-            pointBackgroundColor: color,
-            pointRadius: 4,
-            borderWidth: 2.5,
-          },
-          {
-            label: '全体平均',
-            data: Object.values(groupAvg),
-            borderColor: 'rgba(139,144,184,0.5)',
-            backgroundColor: 'rgba(139,144,184,0.06)',
-            pointBackgroundColor: 'rgba(139,144,184,0.5)',
-            pointRadius: 3,
-            borderWidth: 1.5,
-            borderDash: [5, 5],
-          },
-        ],
-      },
+      data: { labels: DIMENSIONS, datasets: sqDatasets },
       options: {
         ...BASE_OPTS,
         scales: _radarScale(),
@@ -390,70 +473,14 @@ function _renderScorecard(memberId) {
     }
   );
 
-  // ── Horizontal bar (per dimension) ──────
-  _destroyChart('scHistogramChart');
-  _charts['scHistogramChart'] = new Chart(
-    document.getElementById('scHistogramChart').getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: DIMENSIONS,
-        datasets: [{
-          label: 'スコア',
-          data: scoreVals,
-          backgroundColor: scoreVals.map(v =>
-            v >= 8 ? '#34d399cc' : v <= 5 ? '#fb7185cc' : color + 'cc'
-          ),
-          borderRadius: 6,
-          borderSkipped: false,
-        }],
-      },
-      options: {
-        ...BASE_OPTS,
-        indexAxis: 'y',
-        scales: _barScale(true),
-        plugins: { ...BASE_OPTS.plugins, legend: { display: false } },
-      },
-    }
-  );
-
-  // ── Trend line (past comparison) ────────
-  _destroyChart('scTrendChart');
-  const trend = getMemberTrend(member.id);
-  _charts['scTrendChart'] = new Chart(
-    document.getElementById('scTrendChart').getContext('2d'), {
-      type: 'line',
-      data: {
-        labels: MONTHS,
-        datasets: [{
-          label: member.name + ' 総合平均',
-          data: trend,
-          borderColor: color,
-          backgroundColor: color + '22',
-          fill: true,
-          tension: 0.4,
-          pointBackgroundColor: color,
-          pointRadius: 5,
-          pointHoverRadius: 8,
-          borderWidth: 2.5,
-        }],
-      },
-      options: { ...BASE_OPTS, scales: _lineScale() },
-    }
-  );
-
   // ── Table ────────────────────────────────
   const tbody = document.getElementById('sc-table-body');
   if (scores) {
     tbody.innerHTML = DIMENSIONS.map(dim => {
-      const s    = scores[dim];
+      const s    = scores[dim] ?? 0;
       const diff = parseFloat((s - (groupAvg[dim] || 0)).toFixed(2));
       const sign = diff > 0 ? '+' : '';
-      const pillC = s >= 8 ? '#34d399' : s <= 5 ? '#fb7185' : color;
-      const badge = s >= 8
-        ? `<span class="badge badge-strength">💪 強み</span>`
-        : s <= 5
-          ? `<span class="badge badge-challenge">📈 成長機会</span>`
-          : `<span class="badge badge-neutral">🔹 標準</span>`;
+      const pillC = s >= 8 ? '#059669' : s <= 5 ? '#e11d48' : color;
       return `
         <tr>
           <td><strong>${dim}</strong></td>
@@ -464,16 +491,113 @@ function _renderScorecard(memberId) {
               ${s.toFixed(1)}
             </span>
           </td>
-          <td style="color:${diff > 0 ? '#34d399' : diff < 0 ? '#fb7185' : '#8b90b8'}">
+          <td style="color:${diff > 0 ? '#059669' : diff < 0 ? '#e11d48' : '#8b90b8'}">
             ${sign}${diff}
           </td>
-          <td>${badge}</td>
         </tr>`;
     }).join('');
   } else {
     tbody.innerHTML =
-      `<tr><td colspan="4" style="color:var(--text-muted);text-align:center;padding:1.2rem;">
-         この月のデータがありません
+      `<tr><td colspan="3" style="color:var(--text-muted);text-align:center;padding:1.2rem;">
+         評価データがありません
+       </td></tr>`;
+  }
+}
+
+function _renderScorecard(memberId) {
+  const member = MEMBERS.find(m => m.id === memberId);
+  if (!member) return;
+
+  const projKey = Array.isArray(member.project) ? member.project[0] : member.project;
+  const color    = PROJECT_COLORS[projKey] || '#818cf8';
+  const scores   = (member.squadNumber ? getEvaluationScores(member.squadNumber) : null)
+                   || getAggregatedScores(member.id, selectedMonth);
+  const groupAvg = getGroupAverages(selectedMonth);
+
+  // Profile header
+  document.getElementById('sc-avatar').textContent  = member.avatar;
+  document.getElementById('sc-name').textContent    = member.name;
+  document.getElementById('sc-desc').textContent    = member.desc;
+
+  const badge = document.getElementById('sc-project-badge');
+  badge.textContent = Array.isArray(member.project) ? member.project.join(' / ') : member.project;
+  badge.style.setProperty('--proj-c', color);
+
+  const avg = scores
+    ? (Object.values(scores).reduce((a, b) => a + b, 0) / Object.values(scores).length).toFixed(2)
+    : '—';
+  document.getElementById('sc-average').textContent = avg;
+  document.getElementById('sc-average').style.color = color;
+
+  const scoreVals = scores ? DIMENSIONS.map(d => scores[d]) : Array(10).fill(5);
+
+  // ── Radar ──────────────────────────────
+  _destroyChart('scRadarChart');
+  const datasets = [
+    {
+      label: member.name,
+      data: scoreVals,
+      borderColor: color,
+      backgroundColor: color + '28',
+      pointBackgroundColor: color,
+      pointRadius: 5,
+      borderWidth: 2.5,
+    },
+  ];
+  if (_radarMode === 'overlay') {
+    datasets.push({
+      label: '全体平均',
+      data: Object.values(groupAvg),
+      borderColor: 'rgba(139,144,184,0.55)',
+      backgroundColor: 'rgba(139,144,184,0.07)',
+      pointBackgroundColor: 'rgba(139,144,184,0.55)',
+      pointRadius: 3,
+      borderWidth: 1.5,
+      borderDash: [5, 5],
+    });
+  }
+  _charts['scRadarChart'] = new Chart(
+    document.getElementById('scRadarChart').getContext('2d'), {
+      type: 'radar',
+      data: { labels: DIMENSIONS, datasets },
+      options: {
+        ...BASE_OPTS,
+        scales: _radarScale(),
+        plugins: {
+          ...BASE_OPTS.plugins,
+          legend: { ...BASE_OPTS.plugins.legend, position: 'bottom' },
+        },
+      },
+    }
+  );
+
+  // ── Table ────────────────────────────────
+  const tbody = document.getElementById('sc-table-body');
+  if (scores) {
+    tbody.innerHTML = DIMENSIONS.map(dim => {
+      const s    = scores[dim] ?? 0;
+      const diff = parseFloat((s - (groupAvg[dim] || 0)).toFixed(2));
+      const sign = diff > 0 ? '+' : '';
+      const pillC = s >= 8 ? '#059669' : s <= 5 ? '#e11d48' : color;
+      return `
+        <tr>
+          <td><strong>${dim}</strong></td>
+          <td>
+            <span style="display:inline-flex;align-items:center;justify-content:center;
+              width:46px;height:28px;border-radius:99px;font-weight:700;font-size:0.88rem;
+              color:${pillC};background:${pillC}22;border:1px solid ${pillC}55;">
+              ${s.toFixed(1)}
+            </span>
+          </td>
+          <td style="color:${diff > 0 ? '#059669' : diff < 0 ? '#e11d48' : '#8b90b8'}">
+            ${sign}${diff}
+          </td>
+        </tr>`;
+    }).join('');
+  } else {
+    tbody.innerHTML =
+      `<tr><td colspan="3" style="color:var(--text-muted);text-align:center;padding:1.2rem;">
+         評価データがありません
        </td></tr>`;
   }
 }
@@ -484,7 +608,7 @@ function _renderScorecard(memberId) {
 function _renderTrends() {
   const filteredMembers = selectedProject === '全体'
     ? MEMBERS
-    : MEMBERS.filter(m => m.project === selectedProject);
+    : MEMBERS.filter(m => _memberInProject(m, selectedProject));
 
   // KPIs
   document.getElementById('kpi-member-count').textContent = filteredMembers.length + '人';
@@ -903,28 +1027,16 @@ function saveGrowReflectionToStorage(userId, month, reality, options, will) {
 
 // 4. Chigiri Modal
 function openChigiriModal(isUpdate = false) {
-  const chigiri = loadChigiri(currentUser.id);
+  const todayStr = new Date().toLocaleDateString('ja-JP');
+  const chigiri = loadChigiri(currentUser.id, todayStr);
   document.getElementById('chigiri-input').value = chigiri.text;
   
-  const inputMode = document.getElementById('chigiri-input-mode');
-  const displayMode = document.getElementById('chigiri-display-mode');
-  const titleText = document.getElementById('chigiri-title-text');
-  const descText = document.getElementById('chigiri-desc-text');
-  const displayText = document.getElementById('chigiri-display-text');
-  
-  if (isUpdate || !chigiri.text) {
-    inputMode.style.display = 'block';
-    displayMode.style.display = 'none';
-    titleText.textContent = isUpdate ? "契りの更新だな？" : "おい、待てよ！";
-    descText.innerHTML = isUpdate 
-      ? "今の<strong style='color:var(--accent-amber);'>「契り」</strong>をどう変える？"
-      : "ダッシュボードを見る前に、今後の<strong style='color:var(--accent-amber);'>「契り（Chigiri）」</strong>を立てろ！<br>成長の機会を逃すな！";
+  if (isUpdate) {
+    document.querySelector('.chigiri-title').textContent = "契りの更新だな？";
+    document.querySelector('.chigiri-desc').innerHTML = "今の<strong style='color:var(--accent-amber);'>「契り」</strong>をどう変える？";
   } else {
-    inputMode.style.display = 'none';
-    displayMode.style.display = 'block';
-    titleText.textContent = "今日の契り";
-    descText.innerHTML = "あなたが立てた<strong style='color:var(--accent-amber);'>「契り」</strong>を再確認しろ！";
-    displayText.textContent = chigiri.text;
+    document.querySelector('.chigiri-title').textContent = "おい、待てよ！";
+    document.querySelector('.chigiri-desc').innerHTML = "ダッシュボードを見る前に、今日の<strong style='color:var(--accent-amber);'>「契り（Chigiri）」</strong>を立てろ！<br>成長の機会を逃すな！";
   }
   
   openModal('chigiri-modal');
@@ -936,7 +1048,8 @@ function submitChigiri() {
     showToast('⚠️ 契りを入力しろ！', 'error');
     return;
   }
-  saveChigiri(currentUser.id, text);
+  const todayStr = new Date().toLocaleDateString('ja-JP');
+  saveChigiri(currentUser.id, todayStr, text);
   _syncChigiriToUI();
   closeModal('chigiri-modal');
   showToast('🔥 契りを立てた！ 今日も頑張ろう！');
