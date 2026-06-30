@@ -222,6 +222,39 @@ function saveGoal(userId, month, text, progress) {
   localStorage.setItem(LS_GOALS, JSON.stringify(goals));
 }
 
+const LS_CHIGIRI = 'GROW10_chigiri';
+function loadChigiri(userId, dateStr) {
+  const stored = localStorage.getItem(LS_CHIGIRI);
+  const data = stored ? JSON.parse(stored) : [];
+  return data.find(d => d.userId === userId && d.dateStr === dateStr) || { text: '' };
+}
+function saveChigiri(userId, dateStr, text) {
+  const stored = localStorage.getItem(LS_CHIGIRI);
+  const data = stored ? JSON.parse(stored) : [];
+  const idx = data.findIndex(d => d.userId === userId && d.dateStr === dateStr);
+  const entry = { userId, dateStr, text };
+  if (idx >= 0) data[idx] = entry;
+  else data.push(entry);
+  localStorage.setItem(LS_CHIGIRI, JSON.stringify(data));
+}
+
+const LS_GROW = 'GROW10_grow';
+function loadGrowReflection(userId, month) {
+  const stored = localStorage.getItem(LS_GROW);
+  const data = stored ? JSON.parse(stored) : [];
+  return data.find(d => d.userId === userId && d.month === month) || { reality: '', options: '', will: '' };
+}
+function saveGrowReflection(userId, month, reality, options, will) {
+  const stored = localStorage.getItem(LS_GROW);
+  const data = stored ? JSON.parse(stored) : [];
+  const idx = data.findIndex(d => d.userId === userId && d.month === month);
+  const entry = { userId, month, reality, options, will };
+  if (idx >= 0) data[idx] = entry;
+  else data.push(entry);
+  localStorage.setItem(LS_GROW, JSON.stringify(data));
+}
+
+
 /* ─────────────────────────────────────────
    AGGREGATION
 ───────────────────────────────────────── */

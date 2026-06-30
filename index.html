@@ -37,12 +37,20 @@
           <span>🏆</span> 項目別傾向・リーダー
         </button>
       </li>
+      <!-- ADDED TAB 5: SCORING -->
+      <li class="nav-item" id="nav-scoring">
+        <button onclick="switchTab('scoring')">
+          <span>✍️</span> 成績をつける
+        </button>
+      </li>
     </ul>
-    <div class="sidebar-profile">
+    
+    <!-- User Switcher Trigger -->
+    <div class="sidebar-profile" onclick="openUserSwitcherModal()" style="cursor: pointer;" title="クリックしてユーザーを切り替える">
       <div class="profile-avatar" id="current-user-avatar">👨‍💻</div>
       <div class="profile-info">
         <div class="profile-name" id="current-user-name">なお</div>
-        <div class="profile-role">現在ログイン中</div>
+        <div class="profile-role" style="color: var(--accent-cyan); font-size: 0.75rem;">🔄 ユーザー切替</div>
       </div>
     </div>
   </aside>
@@ -55,16 +63,12 @@
       <div class="header-controls">
         <div class="select-wrapper">
           <select id="global-period-select" onchange="onGlobalFilterChange()">
-            <option value="2026年6月" selected>2026年6月 (最新)</option>
-            <option value="2026年5月">2026年5月</option>
-            <option value="2026年4月">2026年4月</option>
+            <!-- Populated by JS -->
           </select>
         </div>
         <div class="select-wrapper">
           <select id="global-project-select" onchange="onGlobalFilterChange()">
-            <option value="全体" selected>プロジェクト: 全体</option>
-            <option value="EC開発プロジェクト">EC開発プロジェクト</option>
-            <option value="SNSマーケティング">SNSマーケティング</option>
+            <!-- Populated by JS -->
           </select>
         </div>
       </div>
@@ -75,34 +79,52 @@
 
       <!-- ================= TAB 1: DASHBOARD ================= -->
       <section id="tab-dashboard" class="tab-pane active">
+        
+        <!-- Overall Goal Banner -->
+        <div class="overall-goal-banner">
+          <div class="banner-icon">🔥</div>
+          <div class="banner-content">
+            <div class="banner-title">今月の全体目標</div>
+            <div class="banner-text">全員で月間総フィードバック数300件を達成し、圧倒的な成長環境を創る！</div>
+          </div>
+        </div>
+
         <div class="grid-dashboard">
           <!-- Left Column -->
           <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-            <!-- Goal Card -->
-            <div class="card">
-              <h2 class="card-title">🎯 今月の目標 (自己申告)</h2>
+            
+            <!-- Chigiri (Pledge) Display Card -->
+            <div class="card chigiri-display-card">
+              <h2 class="card-title" style="color: var(--accent-amber);">⚔️ 今日の契り (Chigiri)</h2>
               <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
-                今期達成したい自分の行動指針を設定し、進捗を記録しましょう。
+                あなたが今日、全力を尽くすと誓った行動です。
               </p>
-              <textarea id="monthly-goal-text" class="goal-input-area" placeholder="今月取り組む目標を入力してください... (例: 『ミーティングでの発言を増やす』、『コードレビューを迅速に行う』)"></textarea>
+              <div class="chigiri-content" id="current-chigiri-text">
+                まだ契りが立てられていません。
+              </div>
+              <button class="btn-secondary" style="width: 100%; margin-top: 1rem; border-color: var(--accent-amber); color: var(--accent-amber);" onclick="openChigiriModal(true)">
+                契りを更新する
+              </button>
+            </div>
+
+            <!-- Monthly Goal & GROW Reflection Card -->
+            <div class="card">
+              <h2 class="card-title">🎯 今月の個人目標とGROW振り返り</h2>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+                目標を設定し、定期的に振り返り(GROWモデル)を行いましょう。
+              </p>
+              <textarea id="monthly-goal-text" class="goal-input-area" placeholder="今月取り組む目標を入力してください..."></textarea>
+              
               <div class="progress-container">
                 <span class="progress-label">現在の自己達成度:</span>
                 <input type="range" id="goal-progress-slider" min="0" max="100" value="0" oninput="updateProgressLabel(this.value)">
                 <span class="progress-label" id="progress-val">0%</span>
               </div>
-              <button class="btn-primary" onclick="saveMonthlyGoal()">💾 目標を保存する</button>
-            </div>
-
-            <!-- Feedback Feed Card -->
-            <div class="card">
-              <h2 class="card-title">💬 最近届いたフィードバック・アドバイス</h2>
-              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
-                メンバーから寄せられた評価のコメントと実践的なアドバイスです。
-              </p>
-              <div class="feedback-list" id="feedback-container">
-                <!-- Javascript will populate this (max 3) -->
+              
+              <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button class="btn-primary" style="flex: 1;" onclick="saveMonthlyGoal()">💾 目標を保存</button>
+                <button class="btn-secondary" style="flex: 1;" onclick="openGrowModal()">🌱 振り返る(GROW)</button>
               </div>
-              <button class="btn-secondary" style="width: 100%; margin-top: 0.5rem; justify-content: center;" onclick="openCommentsModal()">💬 他のコメントをすべて見る</button>
             </div>
           </div>
 
@@ -113,13 +135,22 @@
               <h2 class="card-title" style="justify-content: center; margin-bottom: 1rem;">🌟 あなたの評価サマリー</h2>
               <div class="kpi-container" style="grid-template-columns: 1fr;">
                 <div class="kpi-card" style="background: rgba(0,0,0,0.015); border-radius: var(--border-radius-md); border: 1px solid var(--card-border);">
-                  <div class="kpi-value" id="user-avg-value">7.86</div>
+                  <div class="kpi-value" id="user-avg-value">0.00</div>
                   <div class="kpi-label">総合平均点</div>
                 </div>
               </div>
               <div style="height: 250px; margin-top: 1rem; position: relative;">
                 <canvas id="miniRadarChart"></canvas>
               </div>
+            </div>
+
+            <!-- Feedback Feed Card -->
+            <div class="card">
+              <h2 class="card-title">💬 最近届いたフィードバック</h2>
+              <div class="feedback-list" id="feedback-container">
+                <!-- Javascript will populate this -->
+              </div>
+              <button class="btn-secondary" style="width: 100%; margin-top: 0.5rem; justify-content: center;" onclick="openCommentsModal()">💬 すべて見る</button>
             </div>
           </div>
         </div>
@@ -131,141 +162,82 @@
           <h2 style="font-family: var(--font-header);">個人成績詳細</h2>
           <div class="select-wrapper">
             <select id="scorecard-member-select" onchange="onScorecardMemberChange()" style="min-width: 180px;">
-              <!-- Javascript will populate this -->
             </select>
           </div>
         </div>
-
-        <!-- Student Profile Row -->
         <div class="card" style="margin-bottom: 1.5rem;">
           <div class="member-profile-card">
             <div class="member-large-avatar" id="sc-avatar">👨‍💻</div>
             <div class="member-profile-details">
               <div class="member-name-row">
-                <span class="member-name" id="sc-name">なお</span>
+                <span class="member-name" id="sc-name">--</span>
+                <span class="badge" id="sc-project-badge" style="background: var(--proj-c); color: #fff;">--</span>
               </div>
-              <p class="member-desc" id="sc-desc">いつもエネルギッシュなリーダー。チームを引っ張る力が抜群。</p>
+              <p class="member-desc" id="sc-desc">--</p>
             </div>
             <div style="text-align: right;">
               <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px;">総合平均点</div>
-              <div style="font-size: 2.5rem; font-weight: 800; font-family: var(--font-header); color: var(--accent-indigo);" id="sc-average">7.86</div>
+              <div style="font-size: 2.5rem; font-weight: 800; font-family: var(--font-header); color: var(--accent-indigo);" id="sc-average">0.00</div>
             </div>
           </div>
         </div>
-
-        <!-- Charts Grid -->
         <div class="grid-3" style="margin-bottom: 1.5rem;">
           <div class="card" style="height: 380px;">
             <h3 class="card-title">🕸️ レーダーチャート</h3>
-            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 10px;">
-              個人スコア（青）と全体平均（灰色）の対比
-            </p>
-            <div style="height: 290px; position: relative;">
-              <canvas id="scRadarChart"></canvas>
-            </div>
+            <div style="height: 290px; position: relative;"><canvas id="scRadarChart"></canvas></div>
           </div>
           <div class="card" style="height: 380px;">
             <h3 class="card-title">📊 スコア分布 (ヒストグラム)</h3>
-            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 10px;">
-              10項目の得点分布 (得点ごとの数)
-            </p>
-            <div style="height: 290px; position: relative;">
-              <canvas id="scHistogramChart"></canvas>
-            </div>
+            <div style="height: 290px; position: relative;"><canvas id="scHistogramChart"></canvas></div>
           </div>
           <div class="card" style="height: 380px;">
             <h3 class="card-title">📈 成長トレンド</h3>
-            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 10px;">
-              月別の総合平均点の推移
-            </p>
-            <div style="height: 290px; position: relative;">
-              <canvas id="scTrendChart"></canvas>
-            </div>
+            <div style="height: 290px; position: relative;"><canvas id="scTrendChart"></canvas></div>
           </div>
         </div>
-
-        <!-- Scores Breakdown Table -->
         <div class="card">
           <h3 class="card-title" style="margin-bottom: 1rem;">📋 10項目別スコア明細</h3>
           <table class="scores-table">
             <thead>
-              <tr>
-                <th>評価項目</th>
-                <th>あなたの点数</th>
-                <th>平均点との差</th>
-                <th>強み・課題</th>
-              </tr>
+              <tr><th>評価項目</th><th>あなたの点数</th><th>平均点との差</th><th>強み・課題</th></tr>
             </thead>
-            <tbody id="sc-table-body">
-              <!-- Javascript will populate this -->
-            </tbody>
+            <tbody id="sc-table-body"></tbody>
           </table>
         </div>
       </section>
 
       <!-- ================= TAB 3: OVERALL & GROUP TRENDS ================= -->
       <section id="tab-trends" class="tab-pane">
-        <!-- KPIs Row -->
         <div class="kpi-container">
-          <div class="card kpi-card">
-            <div class="kpi-value">13人</div>
-            <div class="kpi-label">集計対象メンバー数</div>
-          </div>
-          <div class="card kpi-card">
-            <div class="kpi-value" id="group-overall-avg">6.35</div>
-            <div class="kpi-label">グループ全体平均点</div>
-          </div>
-          <div class="card kpi-card">
-            <div class="kpi-value" id="highest-avg-dim">明るさ</div>
-            <div class="kpi-label">最高評価項目</div>
-          </div>
-          <div class="card kpi-card">
-            <div class="kpi-value" id="most-improved-dim">積極性</div>
-            <div class="kpi-label">前月比最高成長項目</div>
-          </div>
+          <div class="card kpi-card"><div class="kpi-value" id="kpi-member-count">0人</div><div class="kpi-label">集計対象メンバー数</div></div>
+          <div class="card kpi-card"><div class="kpi-value" id="group-overall-avg">0.00</div><div class="kpi-label">グループ全体平均点</div></div>
+          <div class="card kpi-card"><div class="kpi-value" id="highest-avg-dim">--</div><div class="kpi-label">最高評価項目</div></div>
+          <div class="card kpi-card"><div class="kpi-value" id="most-improved-dim">--</div><div class="kpi-label">前月比最高成長項目</div></div>
         </div>
-
-        <!-- Charts Grid -->
         <div class="grid-2">
           <div class="card" style="height: 400px;">
             <h3 class="card-title">📈 プロジェクト間・月別平均推移</h3>
-            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 10px;">
-              プロジェクト別の総合平均推移
-            </p>
-            <div style="height: 310px; position: relative;">
-              <canvas id="overallLineChart"></canvas>
-            </div>
+            <div style="height: 310px; position: relative;"><canvas id="overallLineChart"></canvas></div>
           </div>
           <div class="card" style="height: 400px;">
             <h3 class="card-title">📊 10項目プロジェクト別平均比較</h3>
-            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 10px;">
-              各項目のプロジェクトごとの達成平均
-            </p>
-            <div style="height: 310px; position: relative;">
-              <canvas id="projectBarChart"></canvas>
-            </div>
+            <div style="height: 310px; position: relative;"><canvas id="projectBarChart"></canvas></div>
           </div>
         </div>
       </section>
 
       <!-- ================= TAB 4: DIMENSION ANALYTICS & LEADERS ================= -->
       <section id="tab-dimensions" class="tab-pane">
-        <!-- Select Dimension Panel -->
         <div class="card" style="margin-bottom: 1.5rem;">
           <h3 class="card-title" style="margin-bottom: 1rem;">🔍 分析する項目を選択</h3>
-          <div class="dimensions-selector-grid" id="dim-selector-grid">
-            <!-- Javascript will dynamically add active category buttons -->
-          </div>
+          <div class="dimensions-selector-grid" id="dim-selector-grid"></div>
         </div>
-
-        <!-- Dimension Details Layout -->
         <div class="grid-dashboard">
-          <!-- Left analytics -->
           <div style="display: flex; flex-direction: column; gap: 1.5rem;">
             <div class="card">
               <div class="card-header-row">
-                <h3 class="card-title" id="dim-title">積極性の傾向</h3>
-                <span class="feedback-badge" id="dim-avg-badge" style="font-size: 0.9rem; padding: 4px 12px;">全体平均: 6.80</span>
+                <h3 class="card-title" id="dim-title">--</h3>
+                <span class="feedback-badge" id="dim-avg-badge" style="font-size: 0.9rem; padding: 4px 12px;">--</span>
               </div>
               <div class="grid-2">
                 <div style="height: 300px; position: relative;">
@@ -279,15 +251,76 @@
               </div>
             </div>
           </div>
-
-          <!-- Right Role Model Ranking (見習うべき人) -->
           <div class="card" style="display: flex; flex-direction: column; justify-content: flex-start;">
             <h3 class="card-title" style="margin-bottom: 4px;">🏆 見習うべき人 (ロールモデル)</h3>
-            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
-              この項目で卓越したスコアを獲得している上位3名です。
-            </p>
-            <div class="leaders-container" id="leaders-container">
-              <!-- Javascript will generate this dynamically -->
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1.25rem;">卓越したスコアを獲得している上位3名です。</p>
+            <div class="leaders-container" id="leaders-container"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 5: SCORING (成績をつける) ================= -->
+      <section id="tab-scoring" class="tab-pane">
+        <div class="grid-dashboard">
+          <!-- Left: Form -->
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <div class="card">
+              <h2 class="card-title">📝 評価・フィードバックを入力</h2>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
+                メンバーの活躍を評価し、ポジティブなフィードバックを送りましょう。
+              </p>
+              
+              <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                <div style="flex: 1;">
+                  <label class="scoring-dim-label" style="display: block; margin-bottom: 8px;">評価者 (あなた)</label>
+                  <div class="select-wrapper">
+                    <select id="scoring-evaluator-select" disabled></select>
+                  </div>
+                </div>
+                <div style="flex: 1;">
+                  <label class="scoring-dim-label" style="display: block; margin-bottom: 8px;">評価対象者</label>
+                  <div class="select-wrapper">
+                    <select id="scoring-evaluatee-select"></select>
+                  </div>
+                </div>
+                <div style="flex: 1;">
+                  <label class="scoring-dim-label" style="display: block; margin-bottom: 8px;">対象月</label>
+                  <div class="select-wrapper">
+                    <select id="scoring-month-select"></select>
+                  </div>
+                </div>
+              </div>
+
+              <hr style="border: 0; border-top: 1px solid var(--card-border); margin: 1.5rem 0;">
+
+              <div id="scoring-sliders" style="display: flex; flex-direction: column; gap: 1rem;">
+                <!-- JS will populate sliders here -->
+              </div>
+
+              <hr style="border: 0; border-top: 1px solid var(--card-border); margin: 1.5rem 0;">
+
+              <label class="scoring-dim-label" style="display: block; margin-bottom: 8px;">具体的なコメント・アドバイス</label>
+              <textarea id="scoring-comment" class="goal-input-area" style="min-height: 100px; margin-bottom: 1.5rem;" placeholder="具体的な行動や感謝の気持ちを伝えると、相手の励みになります！"></textarea>
+
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 1.2rem; font-weight: 700; color: var(--text-primary);">
+                  入力平均: <span id="scoring-preview-avg" style="color: var(--accent-indigo); font-size: 1.5rem; margin-left: 8px;">5.0</span>
+                </div>
+                <button class="btn-primary" style="padding: 12px 32px; font-size: 1.1rem;" onclick="submitScore()">🚀 評価を送信する</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: History -->
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <div class="card">
+              <h2 class="card-title">📬 最近送信された評価</h2>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+                直近で記録されたメンバー間のフィードバック履歴です。
+              </p>
+              <div class="feedback-list" id="submitted-list" style="max-height: 600px; overflow-y: auto;">
+                <!-- JS will populate -->
+              </div>
             </div>
           </div>
         </div>
@@ -296,16 +329,82 @@
     </div>
   </main>
 
-  <!-- Modal Overlay for All Comments -->
-  <div id="comments-modal" class="modal-overlay" onclick="closeCommentsModalOnOverlay(event)">
+  <!-- ================= MODALS ================= -->
+
+  <!-- 1. All Comments Modal -->
+  <div id="comments-modal" class="modal-overlay" onclick="closeModalOnOverlay(event, 'comments-modal')">
     <div class="modal-content">
       <div class="modal-header">
         <h3 class="modal-title">💬 届いたフィードバック一覧</h3>
-        <button class="close-btn" onclick="closeCommentsModal()">&times;</button>
+        <button class="close-btn" onclick="closeModal('comments-modal')">&times;</button>
       </div>
-      <div class="modal-body" id="modal-feedback-container">
-        <!-- JS will populate all comments here -->
+      <div class="modal-body" id="modal-feedback-container"></div>
+    </div>
+  </div>
+
+  <!-- 2. User Switcher Modal (Login Simulation) -->
+  <div id="user-switcher-modal" class="modal-overlay" onclick="closeModalOnOverlay(event, 'user-switcher-modal')">
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title">🔄 ユーザー切り替え</h3>
+        <button class="close-btn" onclick="closeModal('user-switcher-modal')">&times;</button>
       </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+          デモ用機能です。操作したいユーザーを選択してください。
+        </p>
+        <div class="select-wrapper" style="margin-bottom: 1.5rem;">
+          <select id="login-user-select" style="width: 100%;">
+            <!-- Populated by JS -->
+          </select>
+        </div>
+        <button class="btn-primary" style="width: 100%;" onclick="switchUser()">このユーザーでログイン</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. GROW Reflection Modal -->
+  <div id="grow-modal" class="modal-overlay" onclick="closeModalOnOverlay(event, 'grow-modal')">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 class="modal-title">🌱 GROW振り返り (今月の目標)</h3>
+        <button class="close-btn" onclick="closeModal('grow-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
+          <strong>G (Goal) / R (Reality) / O (Options) / W (Will)</strong> に沿って振り返りましょう。
+        </p>
+        <div style="margin-bottom: 1rem;">
+          <label class="scoring-dim-label" style="display:block; margin-bottom: 8px;">1. できたこと・現状 (Reality)</label>
+          <textarea id="grow-reality" class="goal-input-area" placeholder="今月達成できたことや、現在の状況を書いてください"></textarea>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label class="scoring-dim-label" style="display:block; margin-bottom: 8px;">2. 課題・選択肢 (Options)</label>
+          <textarea id="grow-options" class="goal-input-area" placeholder="うまくいかなかった点や、それを解決するためのアイデアを書いてください"></textarea>
+        </div>
+        <div style="margin-bottom: 1.5rem;">
+          <label class="scoring-dim-label" style="display:block; margin-bottom: 8px;">3. 次へのアクション (Will)</label>
+          <textarea id="grow-will" class="goal-input-area" placeholder="来月に向けて、具体的に何から始めますか？"></textarea>
+        </div>
+        <button class="btn-primary" style="width: 100%;" onclick="saveGrowReflection()">振り返りを保存してスコア入力へ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Duolingo-style 'Chigiri' Annoying Modal -->
+  <div id="chigiri-modal" class="modal-overlay chigiri-overlay">
+    <div class="chigiri-modal-content">
+      <div class="chigiri-mascot">🦉</div>
+      <h2 class="chigiri-title">おい、待てよ！</h2>
+      <p class="chigiri-desc">
+        ダッシュボードを見る前に、今日の<strong style="color:var(--accent-amber);">「契り（Chigiri）」</strong>を立てろ！<br>
+        成長の機会を逃すな！
+      </p>
+      <input type="text" id="chigiri-input" class="chigiri-input" placeholder="例: 今日は絶対に発言する！" autocomplete="off">
+      <button class="chigiri-btn" onclick="submitChigiri()">契りを立てて進む 🔥</button>
+      
+      <!-- Hidden close button for user sanity if requested, but kept low visibility -->
+      <button class="chigiri-skip-btn" onclick="skipChigiri()">今はやめておく... (連続記録が途切れます)</button>
     </div>
   </div>
 

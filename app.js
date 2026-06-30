@@ -97,13 +97,31 @@ function _destroyChart(id) {
    BOOT
 ───────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
+  _updateSidebarProfile();
   _initGlobalFilters();
   _initScorecardSelect();
   _initDimSelector();
   _initScoringForm();
   _syncGoalToUI();
+  _syncChigiriToUI();
   renderTab('dashboard');
+
+  // Trigger Chigiri modal automatically if not set for today
+  setTimeout(() => {
+    const todayStr = new Date().toLocaleDateString('ja-JP');
+    const chigiri = loadChigiri(currentUser.id, todayStr);
+    if (!chigiri.text) {
+      openChigiriModal(false);
+    }
+  }, 500);
 });
+
+function _updateSidebarProfile() {
+  const elAvatar = document.getElementById('current-user-avatar');
+  const elName   = document.getElementById('current-user-name');
+  if (elAvatar) elAvatar.textContent = currentUser.avatar;
+  if (elName)   elName.textContent   = currentUser.name;
+}
 
 /* ─────────────────────────────────────────
    GLOBAL FILTERS
@@ -134,7 +152,8 @@ function switchTab(id) {
   document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById(`tab-${id}`).classList.add('active');
-  document.getElementById(`nav-${id}`).classList.add('active');
+  const navEl = document.getElementById(`nav-${id}`);
+  if (navEl) navEl.classList.add('active');
 
   const TITLES = {
     dashboard: 'ダッシュボード',
@@ -233,6 +252,7 @@ function _renderDashboard() {
   }
 
   _syncGoalToUI();
+  _syncChigiriToUI();
 }
 
 function _syncGoalToUI() {
@@ -246,7 +266,8 @@ function _syncGoalToUI() {
 }
 
 function updateProgressLabel(val) {
-  document.getElementById('progress-val').textContent = val + '%';
+  const lbl = document.getElementById('progress-val');
+  if (lbl) lbl.textContent = val + '%';
 }
 
 function saveMonthlyGoal() {
@@ -254,6 +275,17 @@ function saveMonthlyGoal() {
   const progress = parseInt(document.getElementById('goal-progress-slider').value);
   saveGoal(currentUser.id, selectedMonth, text, progress);
   showToast('💾 目標を保存しました！');
+}
+
+/* Chigiri */
+function _syncChigiriToUI() {
+  const todayStr = new Date().toLocaleDateString('ja-JP');
+  const chigiri = loadChigiri(currentUser.id, todayStr);
+  const el = document.getElementById('current-chigiri-text');
+  if (el) {
+    el.textContent = chigiri.text ? `「${chigiri.text}」` : 'まだ契りが立てられていません。';
+    el.style.color = chigiri.text ? 'var(--accent-amber)' : 'var(--text-primary)';
+  }
 }
 
 /* ═══════════════════════════════════════
@@ -772,10 +804,23 @@ function _renderSubmittedList() {
 }
 
 /* ─────────────────────────────────────────
-   MODAL
+   MODALS
 ───────────────────────────────────────── */
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function closeModalOnOverlay(e, id) {
+  if (e.target.id === id) closeModal(id);
+}
+
+// 1. Comments Modal
 function openCommentsModal() {
-  document.getElementById('comments-modal').classList.add('open');
+  openModal('comments-modal');
   const comments  = window._allComments || [];
   const container = document.getElementById('modal-feedback-container');
   container.innerHTML = comments.length
@@ -791,12 +836,88 @@ function openCommentsModal() {
     : `<div style="color:var(--text-muted);text-align:center;">コメントなし</div>`;
 }
 
-function closeCommentsModal() {
-  document.getElementById('comments-modal').classList.remove('open');
+// 2. User Switcher
+function openUserSwitcherModal() {
+  const select = document.getElementById('login-user-select');
+  select.innerHTML = MEMBERS.map(m => 
+    `<option value="${m.id}" ${m.id === currentUser.id ? 'selected' : ''}>
+       ${m.avatar} ${m.name} (${m.project})
+     </option>`
+  ).join('');
+  openModal('user-switcher-modal');
 }
 
-function closeCommentsModalOnOverlay(e) {
-  if (e.target.id === 'comments-modal') closeCommentsModal();
+function switchUser() {
+  const id = parseInt(document.getElementById('login-user-select').value);
+  const user = MEMBERS.find(m => m.id === id);
+  if (user) {
+    currentUser = user;
+    _updateSidebarProfile();
+    closeModal('user-switcher-modal');
+    renderTab(currentTab); // refresh current view
+    showToast(`${user.name} に切り替えました`);
+  }
+}
+
+// 3. GROW Reflection
+function openGrowModal() {
+  const grow = loadGrowReflection(currentUser.id, selectedMonth);
+  document.getElementById('grow-reality').value = grow.reality;
+  document.getElementById('grow-options').value = grow.options;
+  document.getElementById('grow-will').value = grow.will;
+  openModal('grow-modal');
+}
+
+function saveGrowReflection() {
+  const reality = document.getElementById('grow-reality').value;
+  const options = document.getElementById('grow-options').value;
+  const will    = document.getElementById('grow-will').value;
+  saveGrowReflectionToStorage(currentUser.id, selectedMonth, reality, options, will);
+  closeModal('grow-modal');
+  showToast('🌱 振り返りを保存しました！');
+  switchTab('scoring'); // Prompt them to score others next
+}
+
+// Ensure the helper function name matches what we call here since we used saveGrowReflection for the storage one in data.js
+function saveGrowReflectionToStorage(userId, month, reality, options, will) {
+  // It's already defined globally in data.js as saveGrowReflection.
+  // Wait, I named it saveGrowReflection in data.js. I should call the one from data.js.
+  // To avoid naming collision, I'll use window.saveGrowReflection if it's there.
+  window.saveGrowReflection(userId, month, reality, options, will);
+}
+
+// 4. Chigiri Modal
+function openChigiriModal(isUpdate = false) {
+  const todayStr = new Date().toLocaleDateString('ja-JP');
+  const chigiri = loadChigiri(currentUser.id, todayStr);
+  document.getElementById('chigiri-input').value = chigiri.text;
+  
+  if (isUpdate) {
+    document.querySelector('.chigiri-title').textContent = "契りの更新だな？";
+    document.querySelector('.chigiri-desc').innerHTML = "今の<strong style='color:var(--accent-amber);'>「契り」</strong>をどう変える？";
+  } else {
+    document.querySelector('.chigiri-title').textContent = "おい、待てよ！";
+    document.querySelector('.chigiri-desc').innerHTML = "ダッシュボードを見る前に、今日の<strong style='color:var(--accent-amber);'>「契り（Chigiri）」</strong>を立てろ！<br>成長の機会を逃すな！";
+  }
+  
+  openModal('chigiri-modal');
+}
+
+function submitChigiri() {
+  const text = document.getElementById('chigiri-input').value.trim();
+  if (!text) {
+    showToast('⚠️ 契りを入力しろ！', 'error');
+    return;
+  }
+  const todayStr = new Date().toLocaleDateString('ja-JP');
+  saveChigiri(currentUser.id, todayStr, text);
+  _syncChigiriToUI();
+  closeModal('chigiri-modal');
+  showToast('🔥 契りを立てた！ 今日も頑張ろう！');
+}
+
+function skipChigiri() {
+  closeModal('chigiri-modal');
 }
 
 /* ─────────────────────────────────────────
