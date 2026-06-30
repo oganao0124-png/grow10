@@ -107,18 +107,23 @@
               </button>
             </div>
 
-            <!-- Monthly Goal & GROW Reflection Card -->
+            <!-- Monthly Goal Card -->
             <div class="card">
-              <h2 class="card-title">🎯 今月の個人目標とGROW振り返り</h2>
+              <h2 class="card-title">🎯 今月の個人目標</h2>
               <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
-                目標を設定し、定期的に振り返り(GROWモデル)を行いましょう。
+                今月取り組む目標を設定しましょう。
               </p>
               <textarea id="monthly-goal-text" class="goal-input-area" placeholder="今月取り組む目標を入力してください..."></textarea>
-              
-              <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                <button class="btn-primary" style="flex: 1;" onclick="saveMonthlyGoal()">💾 目標を保存</button>
-                <button class="btn-secondary" style="flex: 1;" onclick="openGrowModal()">🌱 振り返る(GROW)</button>
-              </div>
+              <button class="btn-primary" style="width: 100%; margin-top: 1rem;" onclick="saveMonthlyGoal()">💾 目標を保存</button>
+            </div>
+            
+            <!-- GROW Reflection Card -->
+            <div class="card">
+              <h2 class="card-title">🌱 GROW振り返り</h2>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+                目標に対して定期的に振り返り(GROWモデル)を行いましょう。
+              </p>
+              <button class="btn-secondary" style="width: 100%;" onclick="openGrowModal()">🌱 振り返る(GROW)</button>
             </div>
           </div>
 
@@ -389,16 +394,35 @@
   <div id="chigiri-modal" class="modal-overlay chigiri-overlay">
     <div class="chigiri-modal-content">
       <div class="chigiri-mascot">🦉</div>
-      <h2 class="chigiri-title">おい、待てよ！</h2>
-      <p class="chigiri-desc">
-        ダッシュボードを見る前に、今日の<strong style="color:var(--accent-amber);">「契り（Chigiri）」</strong>を立てろ！<br>
+      <h2 class="chigiri-title" id="chigiri-title-text">おい、待てよ！</h2>
+      <p class="chigiri-desc" id="chigiri-desc-text">
+        ダッシュボードを見る前に、今後の<strong style="color:var(--accent-amber);">「契り（Chigiri）」</strong>を立てろ！<br>
         成長の機会を逃すな！
       </p>
-      <input type="text" id="chigiri-input" class="chigiri-input" placeholder="例: 今日は絶対に発言する！" autocomplete="off">
-      <button class="chigiri-btn" onclick="submitChigiri()">契りを立てて進む 🔥</button>
       
-      <!-- Hidden close button for user sanity if requested, but kept low visibility -->
-      <button class="chigiri-skip-btn" onclick="skipChigiri()">今はやめておく... (連続記録が途切れます)</button>
+      <!-- Input Mode -->
+      <div id="chigiri-input-mode">
+        <input type="text" id="chigiri-input" class="chigiri-input" placeholder="例: 常に明るく発言する！" autocomplete="off">
+        <button class="chigiri-btn" onclick="submitChigiri()">契りを立てて進む 🔥</button>
+        <button class="chigiri-skip-btn" onclick="skipChigiri()">今はやめておく...</button>
+      </div>
+
+      <!-- Display Mode -->
+      <div id="chigiri-display-mode" style="display: none;">
+        <div id="chigiri-display-text" style="font-size: 1.25rem; font-weight: bold; margin: 1.5rem 0; color: var(--text-primary); background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;"></div>
+        <button class="chigiri-btn" onclick="skipChigiri()">確認して進む 🔥</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Login Modal (背番号入力) -->
+  <div id="login-modal" class="modal-overlay login-overlay" style="display: flex; z-index: 9999;">
+    <div class="modal-content" style="max-width: 400px; text-align: center;">
+      <h2 style="font-family: var(--font-header); font-size: 1.8rem; margin-bottom: 10px; background: var(--gradient-brand); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">GROW10</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 2rem;">背番号を入力してログインしてください</p>
+      <input type="number" id="login-id-input" class="goal-input-area" placeholder="例: 1" style="font-size: 1.5rem; text-align: center; margin-bottom: 1rem; padding: 12px;">
+      <p id="login-error-msg" style="color: var(--accent-rose); font-size: 0.85rem; margin-bottom: 1rem; display: none;">該当する背番号が見つかりません</p>
+      <button class="btn-primary" style="width: 100%; font-size: 1.1rem; padding: 12px;" onclick="handleLogin()">ログイン</button>
     </div>
   </div>
 

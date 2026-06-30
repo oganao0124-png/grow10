@@ -8,7 +8,7 @@
 /* ─────────────────────────────────────────
    STATE
 ───────────────────────────────────────── */
-let currentUser      = MEMBERS[0];
+let currentUser      = null;
 let currentTab       = 'dashboard';
 let selectedMonth    = MONTHS[MONTHS.length - 1];
 let selectedProject  = '全体';
@@ -97,6 +97,26 @@ function _destroyChart(id) {
    BOOT
 ───────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
+  // ログインモーダルがデフォルトで表示されます
+});
+
+function handleLogin() {
+  const inputEl = document.getElementById('login-id-input');
+  const errorMsg = document.getElementById('login-error-msg');
+  const idVal = parseInt(inputEl.value, 10);
+  
+  const member = MEMBERS.find(m => m.id === idVal);
+  if (!member) {
+    errorMsg.style.display = 'block';
+    return;
+  }
+  
+  errorMsg.style.display = 'none';
+  currentUser = member;
+  selectedScorecard = member.id;
+  
+  document.getElementById('login-modal').style.display = 'none';
+  
   _updateSidebarProfile();
   _initGlobalFilters();
   _initScorecardSelect();
@@ -106,15 +126,10 @@ document.addEventListener('DOMContentLoaded', () => {
   _syncChigiriToUI();
   renderTab('dashboard');
 
-  // Trigger Chigiri modal automatically if not set for today
   setTimeout(() => {
-    const todayStr = new Date().toLocaleDateString('ja-JP');
-    const chigiri = loadChigiri(currentUser.id, todayStr);
-    if (!chigiri.text) {
-      openChigiriModal(false);
-    }
-  }, 500);
-});
+    openChigiriModal(false);
+  }, 100);
+}
 
 function _updateSidebarProfile() {
   const elAvatar = document.getElementById('current-user-avatar');
@@ -280,8 +295,7 @@ function saveMonthlyGoal() {
 
 /* Chigiri */
 function _syncChigiriToUI() {
-  const todayStr = new Date().toLocaleDateString('ja-JP');
-  const chigiri = loadChigiri(currentUser.id, todayStr);
+  const chigiri = loadChigiri(currentUser.id);
   const el = document.getElementById('current-chigiri-text');
   if (el) {
     el.textContent = chigiri.text ? `「${chigiri.text}」` : 'まだ契りが立てられていません。';
@@ -889,16 +903,28 @@ function saveGrowReflectionToStorage(userId, month, reality, options, will) {
 
 // 4. Chigiri Modal
 function openChigiriModal(isUpdate = false) {
-  const todayStr = new Date().toLocaleDateString('ja-JP');
-  const chigiri = loadChigiri(currentUser.id, todayStr);
+  const chigiri = loadChigiri(currentUser.id);
   document.getElementById('chigiri-input').value = chigiri.text;
   
-  if (isUpdate) {
-    document.querySelector('.chigiri-title').textContent = "契りの更新だな？";
-    document.querySelector('.chigiri-desc').innerHTML = "今の<strong style='color:var(--accent-amber);'>「契り」</strong>をどう変える？";
+  const inputMode = document.getElementById('chigiri-input-mode');
+  const displayMode = document.getElementById('chigiri-display-mode');
+  const titleText = document.getElementById('chigiri-title-text');
+  const descText = document.getElementById('chigiri-desc-text');
+  const displayText = document.getElementById('chigiri-display-text');
+  
+  if (isUpdate || !chigiri.text) {
+    inputMode.style.display = 'block';
+    displayMode.style.display = 'none';
+    titleText.textContent = isUpdate ? "契りの更新だな？" : "おい、待てよ！";
+    descText.innerHTML = isUpdate 
+      ? "今の<strong style='color:var(--accent-amber);'>「契り」</strong>をどう変える？"
+      : "ダッシュボードを見る前に、今後の<strong style='color:var(--accent-amber);'>「契り（Chigiri）」</strong>を立てろ！<br>成長の機会を逃すな！";
   } else {
-    document.querySelector('.chigiri-title').textContent = "おい、待てよ！";
-    document.querySelector('.chigiri-desc').innerHTML = "ダッシュボードを見る前に、今日の<strong style='color:var(--accent-amber);'>「契り（Chigiri）」</strong>を立てろ！<br>成長の機会を逃すな！";
+    inputMode.style.display = 'none';
+    displayMode.style.display = 'block';
+    titleText.textContent = "今日の契り";
+    descText.innerHTML = "あなたが立てた<strong style='color:var(--accent-amber);'>「契り」</strong>を再確認しろ！";
+    displayText.textContent = chigiri.text;
   }
   
   openModal('chigiri-modal');
@@ -910,8 +936,7 @@ function submitChigiri() {
     showToast('⚠️ 契りを入力しろ！', 'error');
     return;
   }
-  const todayStr = new Date().toLocaleDateString('ja-JP');
-  saveChigiri(currentUser.id, todayStr, text);
+  saveChigiri(currentUser.id, text);
   _syncChigiriToUI();
   closeModal('chigiri-modal');
   showToast('🔥 契りを立てた！ 今日も頑張ろう！');

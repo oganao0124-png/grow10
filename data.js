@@ -223,16 +223,16 @@ function saveGoal(userId, month, text, progress) {
 }
 
 const LS_CHIGIRI = 'GROW10_chigiri';
-function loadChigiri(userId, dateStr) {
+function loadChigiri(userId) {
   const stored = localStorage.getItem(LS_CHIGIRI);
   const data = stored ? JSON.parse(stored) : [];
-  return data.find(d => d.userId === userId && d.dateStr === dateStr) || { text: '' };
+  return data.find(d => d.userId === userId) || { text: '' };
 }
-function saveChigiri(userId, dateStr, text) {
+function saveChigiri(userId, text) {
   const stored = localStorage.getItem(LS_CHIGIRI);
   const data = stored ? JSON.parse(stored) : [];
-  const idx = data.findIndex(d => d.userId === userId && d.dateStr === dateStr);
-  const entry = { userId, dateStr, text };
+  const idx = data.findIndex(d => d.userId === userId);
+  const entry = { userId, text };
   if (idx >= 0) data[idx] = entry;
   else data.push(entry);
   localStorage.setItem(LS_CHIGIRI, JSON.stringify(data));
