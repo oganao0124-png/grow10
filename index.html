@@ -37,12 +37,6 @@
           <span>🏆</span> 項目別傾向・リーダー
         </button>
       </li>
-      <!-- ADDED TAB 5: SCORING -->
-      <li class="nav-item" id="nav-scoring">
-        <button onclick="switchTab('scoring')">
-          <span>✍️</span> 成績をつける
-        </button>
-      </li>
     </ul>
     
     <!-- User Switcher Trigger -->
@@ -89,33 +83,30 @@
           </div>
         </div>
 
+        <!-- Top Row: Chigiri and Goal Side-by-Side -->
+        <div class="grid-2" style="margin-bottom: 1.5rem; align-items: stretch;">
+          <!-- Chigiri (Pledge) Display Card -->
+          <div class="card chigiri-display-card" style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%); border: 1px solid rgba(251, 191, 36, 0.3); display: flex; flex-direction: column;">
+            <h2 class="card-title" style="color: var(--accent-amber); font-size: 1.5rem; justify-content: center;">⚔️ 今月の契り (Chigiri)</h2>
+            <div class="chigiri-content" id="current-chigiri-text" style="font-size: 1.8rem; font-weight: bold; margin-top: auto; margin-bottom: auto; text-align: center; line-height: 1.5; padding: 20px;">
+              ※ ここに後ほど全体共有の契りが表示されます
+            </div>
+          </div>
+
+          <!-- Monthly Goal Card -->
+          <div class="card" style="display: flex; flex-direction: column;">
+            <h2 class="card-title" style="font-size: 1.5rem;">🎯 今月の個人目標</h2>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">
+              今月取り組む目標を設定しましょう。
+            </p>
+            <textarea id="monthly-goal-text" class="goal-input-area" placeholder="今月取り組む目標を入力してください..." style="flex: 1; min-height: 200px; font-size: 1.5rem; padding: 20px; line-height: 1.5;"></textarea>
+            <button class="btn-primary" style="width: 100%; margin-top: 1rem; padding: 16px; font-size: 1.2rem;" onclick="saveMonthlyGoal()">💾 目標を保存</button>
+          </div>
+        </div>
+
         <div class="grid-dashboard">
           <!-- Left Column -->
           <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-            
-            <!-- Chigiri (Pledge) Display Card -->
-            <div class="card chigiri-display-card">
-              <h2 class="card-title" style="color: var(--accent-amber);">⚔️ 今日の契り (Chigiri)</h2>
-              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
-                あなたが今日、全力を尽くすと誓った行動です。
-              </p>
-              <div class="chigiri-content" id="current-chigiri-text">
-                まだ契りが立てられていません。
-              </div>
-              <button class="btn-secondary" style="width: 100%; margin-top: 1rem; border-color: var(--accent-amber); color: var(--accent-amber);" onclick="openChigiriModal(true)">
-                契りを更新する
-              </button>
-            </div>
-
-            <!-- Monthly Goal Card -->
-            <div class="card">
-              <h2 class="card-title">🎯 今月の個人目標</h2>
-              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
-                今月取り組む目標を設定しましょう。
-              </p>
-              <textarea id="monthly-goal-text" class="goal-input-area" placeholder="今月取り組む目標を入力してください..."></textarea>
-              <button class="btn-primary" style="width: 100%; margin-top: 1rem;" onclick="saveMonthlyGoal()">💾 目標を保存</button>
-            </div>
             
             <!-- GROW Reflection Card -->
             <div class="card">
@@ -123,25 +114,12 @@
               <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
                 目標に対して定期的に振り返り(GROWモデル)を行いましょう。
               </p>
-              <button class="btn-secondary" style="width: 100%;" onclick="openGrowModal()">🌱 振り返る(GROW)</button>
+              <button class="btn-secondary" style="width: 100%; padding: 12px; font-size: 1.05rem;" onclick="openGrowModal()">🌱 振り返る(GROW)</button>
             </div>
           </div>
 
           <!-- Right Column -->
           <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-            <!-- My Score Overview -->
-            <div class="card" style="text-align: center;">
-              <h2 class="card-title" style="justify-content: center; margin-bottom: 1rem;">🌟 あなたの評価サマリー</h2>
-              <div class="kpi-container" style="grid-template-columns: 1fr;">
-                <div class="kpi-card" style="background: rgba(0,0,0,0.015); border-radius: var(--border-radius-md); border: 1px solid var(--card-border);">
-                  <div class="kpi-value" id="user-avg-value">0.00</div>
-                  <div class="kpi-label">総合平均点</div>
-                </div>
-              </div>
-              <div style="height: 250px; margin-top: 1rem; position: relative;">
-                <canvas id="miniRadarChart"></canvas>
-              </div>
-            </div>
 
             <!-- Feedback Feed Card -->
             <div class="card">
@@ -258,72 +236,6 @@
         </div>
       </section>
 
-      <!-- ================= TAB 5: SCORING (成績をつける) ================= -->
-      <section id="tab-scoring" class="tab-pane">
-        <div class="grid-dashboard">
-          <!-- Left: Form -->
-          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-            <div class="card">
-              <h2 class="card-title">📝 評価・フィードバックを入力</h2>
-              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
-                メンバーの活躍を評価し、ポジティブなフィードバックを送りましょう。
-              </p>
-              
-              <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
-                <div style="flex: 1;">
-                  <label class="scoring-dim-label" style="display: block; margin-bottom: 8px;">評価者 (あなた)</label>
-                  <div class="select-wrapper">
-                    <select id="scoring-evaluator-select" disabled></select>
-                  </div>
-                </div>
-                <div style="flex: 1;">
-                  <label class="scoring-dim-label" style="display: block; margin-bottom: 8px;">評価対象者</label>
-                  <div class="select-wrapper">
-                    <select id="scoring-evaluatee-select"></select>
-                  </div>
-                </div>
-                <div style="flex: 1;">
-                  <label class="scoring-dim-label" style="display: block; margin-bottom: 8px;">対象月</label>
-                  <div class="select-wrapper">
-                    <select id="scoring-month-select"></select>
-                  </div>
-                </div>
-              </div>
-
-              <hr style="border: 0; border-top: 1px solid var(--card-border); margin: 1.5rem 0;">
-
-              <div id="scoring-sliders" style="display: flex; flex-direction: column; gap: 1rem;">
-                <!-- JS will populate sliders here -->
-              </div>
-
-              <hr style="border: 0; border-top: 1px solid var(--card-border); margin: 1.5rem 0;">
-
-              <label class="scoring-dim-label" style="display: block; margin-bottom: 8px;">具体的なコメント・アドバイス</label>
-              <textarea id="scoring-comment" class="goal-input-area" style="min-height: 100px; margin-bottom: 1.5rem;" placeholder="具体的な行動や感謝の気持ちを伝えると、相手の励みになります！"></textarea>
-
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="font-size: 1.2rem; font-weight: 700; color: var(--text-primary);">
-                  入力平均: <span id="scoring-preview-avg" style="color: var(--accent-indigo); font-size: 1.5rem; margin-left: 8px;">5.0</span>
-                </div>
-                <button class="btn-primary" style="padding: 12px 32px; font-size: 1.1rem;" onclick="submitScore()">🚀 評価を送信する</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right: History -->
-          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-            <div class="card">
-              <h2 class="card-title">📬 最近送信された評価</h2>
-              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
-                直近で記録されたメンバー間のフィードバック履歴です。
-              </p>
-              <div class="feedback-list" id="submitted-list" style="max-height: 600px; overflow-y: auto;">
-                <!-- JS will populate -->
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
     </div>
   </main>
@@ -390,27 +302,21 @@
     </div>
   </div>
 
-  <!-- 4. Duolingo-style 'Chigiri' Annoying Modal -->
-  <div id="chigiri-modal" class="modal-overlay chigiri-overlay">
+  <!-- 4. Duolingo-style 'Chigiri' Annoying Modal (Display Only) -->
+  <div id="chigiri-modal" class="modal-overlay chigiri-overlay" style="display: none;">
     <div class="chigiri-modal-content">
-      <div class="chigiri-mascot">🦉</div>
-      <h2 class="chigiri-title" id="chigiri-title-text">おい、待てよ！</h2>
-      <p class="chigiri-desc" id="chigiri-desc-text">
-        ダッシュボードを見る前に、今後の<strong style="color:var(--accent-amber);">「契り（Chigiri）」</strong>を立てろ！<br>
-        成長の機会を逃すな！
+      <div class="chigiri-mascot">📢</div>
+      <h2 class="chigiri-title" id="chigiri-title-text" style="font-size: 1.8rem;">今日の契り（全体共有）</h2>
+      <p class="chigiri-desc" id="chigiri-desc-text" style="font-size: 1rem; margin-bottom: 1.5rem;">
+        ※ ここには後ほど全体で共有される「今日の契り」のメッセージが表示されます。
       </p>
       
-      <!-- Input Mode -->
-      <div id="chigiri-input-mode">
-        <input type="text" id="chigiri-input" class="chigiri-input" placeholder="例: 常に明るく発言する！" autocomplete="off">
-        <button class="chigiri-btn" onclick="submitChigiri()">契りを立てて進む 🔥</button>
-        <button class="chigiri-skip-btn" onclick="skipChigiri()">今はやめておく...</button>
-      </div>
-
       <!-- Display Mode -->
-      <div id="chigiri-display-mode" style="display: none;">
-        <div id="chigiri-display-text" style="font-size: 1.25rem; font-weight: bold; margin: 1.5rem 0; color: var(--text-primary); background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;"></div>
-        <button class="chigiri-btn" onclick="skipChigiri()">確認して進む 🔥</button>
+      <div id="chigiri-display-mode">
+        <div id="chigiri-display-text" style="font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0; color: var(--text-primary); background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; border: 1px solid var(--accent-amber);">
+          （メッセージ枠）
+        </div>
+        <button class="chigiri-btn" onclick="skipChigiri()" style="width: 100%; padding: 15px; font-size: 1.2rem;">確認してダッシュボードへ進む 🔥</button>
       </div>
     </div>
   </div>

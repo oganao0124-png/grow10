@@ -12,10 +12,13 @@ let currentUser      = null;
 let currentTab       = 'dashboard';
 let selectedMonth    = MONTHS[MONTHS.length - 1];
 let selectedProject  = '全体';
-let selectedScorecard = MEMBERS[0].id;
+let selectedScorecard = null;
 let selectedDimension = DIMENSIONS[0];
 
 const _charts = {};   // Chart instance registry
+
+// Google Apps Script Web App URL (デプロイしたURLをここに貼る)
+const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw4oh79CPgN8v5itmqXoG8ML6Dq3Rvpk8SJMGFzpeLGT664qjNpt7GLLzzrxShs-DJy/exec";
 
 /* ─────────────────────────────────────────
    CHART THEME
@@ -96,8 +99,127 @@ function _destroyChart(id) {
 /* ─────────────────────────────────────────
    BOOT
 ───────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', () => {
-  // ログインモーダルがデフォルトで表示されます
+async function fetchMembersFromSheet() {
+  if (GAS_WEB_APP_URL === "YOUR_GAS_WEB_APP_URL_HERE") {
+    console.warn("GAS_WEB_APP_URL is not set. Please set the deployed Web App URL.");
+    return;
+  }
+  const url = GAS_WEB_APP_URL + '?action=getMembers';
+  try {
+    const res = await fetch(url);
+    const json = await res.json();
+    if (json.status !== 'success') throw new Error(json.message);
+    
+    const lines = json.data;
+    const emojis = ['😎','🚀','🌸','⚡','💪','✨','🌟','🎉','🔥','💡'];
+    MEMBERS = [];
+    
+    // index 0 is header row
+    for (let i = 1; i < lines.length; i++) {
+      const parts = lines[i];
+      const id = parseInt(parts[0], 10);
+      if (isNaN(id)) continue;
+      
+      const allowedIds = [
+        1626, 2022, 2711, 2810, 3220, 3290, 3318, 3451, 3486, 3515,
+        3667, 3827, 3929, 4002, 4005, 4006, 4011, 4014, 4017, 4018,
+        4023, 4027, 4051, 4071, 4072, 4085, 4088, 4003, 3999, 4999, 4000
+      ];
+      if (!allowedIds.includes(id)) continue;
+      
+      const rawDept = parts[3] ? String(parts[3]).replace(/"/g, '') : '';
+      const deptArray = rawDept.split(',').map(s => s.trim()).filter(s => s !== 'spark_fes' && s !== 'base' && s !== '');
+      const project = deptArray.length > 0 ? deptArray[0] : 'Unassigned';
+      
+      MEMBERS.push({
+        id: id,
+        name: parts[1] || 'Unknown',
+        category: parts[2] || '',
+        project: project,
+        desc: rawDept,
+        avatar: emojis[id % emojis.length],
+        chigiri: parts[5] || '',
+        goal: parts[6] || '',
+        grow: {
+          reality: parts[7] || '',
+          options: parts[8] || '',
+          will: parts[9] || ''
+        }
+      });
+    }
+    
+    // Dynamically build PROJECTS array
+    const uniqueProjects = Array.from(new Set(MEMBERS.map(m => m.project))).filter(p => p !== 'Unassigned');
+    PROJECTS = uniqueProjects;
+    
+  } catch(e) {
+    console.error("Failed to load members from GAS", e);
+    alert("スプレッドシートからのデータ取得に失敗しました。\n・GASのデプロイ時に「アクセスできるユーザー：全員」になっていますか？\n・「アクセスを承認」は完了していますか？\nエラー詳細: " + e.message);
+  }
+}
+
+const RAW_PAST_DATA = `
+22,なぁ,7.92,1,7.25,2,8,1,8.92,1,7.42,1,8.33,1,7.58,3,8.33,1,7.17,4,7.67,1,7.86,1
+220,あづき,5.08,11,4.75,12,4.42,13,4.25,12,5,11,4.33,12,4,12,4.67,12,5.08,11,5.17,11,4.67,12
+290,かな,5.83,9,5.83,10,6,9,5.92,8,5.67,10,5.25,10,6.17,9,6.5,8,6,9,5.42,10,5.86,9
+318,はるひ,7.5,3,7.08,3,7.42,3,7.33,2,7.33,2,6.83,4,7.5,4,7.58,2,7.33,2,7.42,2,7.33,2
+451,ヨコイ,6.33,8,6.33,8,6.42,8,5.67,9,6.17,8,5.75,8,6.25,8,6.25,9,6.33,8,6.08,8,6.16,8
+486,がろな,7.5,3,7.08,3,7.08,6,6.67,5,7,5,6.75,6,7.42,5,7.25,5,6.67,7,7.42,2,7.08,6
+515,しょっぴー,4.25,13,4.17,13,4.75,12,4.25,12,4.33,13,3.5,13,3.58,13,4.08,13,4.17,13,4.33,13,4.14,13
+626,たいよう,7.25,5,7,5,7.58,2,6.83,4,6.58,7,6.75,6,7.42,5,7.08,7,7.75,1,7.17,5,7.14,3
+667,ののか,6.75,7,7,5,7.17,4,7.33,2,7.33,2,7,3,7.08,7,7.5,3,6.92,6,7.33,4,7.14,3
+711,ひとみ,7.58,2,7,5,7.17,4,6.25,6,7.08,4,7.08,2,7.67,2,7.42,4,7,5,6.92,6,7.12,5
+810,ばとう,5.83,9,6,9,5.92,10,5.25,10,6,9,5.33,9,5.17,11,6.08,10,5.83,10,5.83,9,5.73,10
+827,あやね,5.08,11,5.17,11,4.83,11,4.75,11,4.83,12,4.58,11,6,10,5.5,11,4.92,12,5.08,12,5.08,11
+929,てるし,7,6,7.58,1,7,7,6.08,7,6.83,6,6.83,4,8,1,7.25,5,7.33,2,6.83,7,7.08,7
+`;
+
+async function fetchPastScoresFromSheet() {
+  PAST_SCORES = {};
+  const lines = RAW_PAST_DATA.trim().split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const parts = line.split(',');
+    const pastId = parseInt(parts[0], 10);
+    if (isNaN(pastId)) continue;
+    
+    // The past CSV drops the first digit of the ID (e.g. 1626 -> 626).
+    // We map it back to the real ID by matching the last 3 digits.
+    const member = MEMBERS.find(m => m.id % 1000 === pastId);
+    if (!member) continue;
+    const realId = member.id;
+    
+    const scores = {
+      '協調性': parseFloat(parts[2]) || 0,
+      '素直さ': parseFloat(parts[4]) || 0,
+      '積極性': parseFloat(parts[6]) || 0,
+      '明るさ': parseFloat(parts[8]) || 0,
+      '礼儀正しさ': parseFloat(parts[10]) || 0,
+      '清潔さ': parseFloat(parts[12]) || 0,
+      '正確さ': parseFloat(parts[14]) || 0,
+      '懸命さ': parseFloat(parts[16]) || 0,
+      '柔軟性': parseFloat(parts[18]) || 0,
+      'ホスピタリティ': parseFloat(parts[20]) || 0
+    };
+    
+    PAST_SCORES[realId] = scores;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const loginBtn = document.querySelector('#login-modal button');
+  if (loginBtn) {
+    loginBtn.disabled = true;
+    loginBtn.textContent = '読込中...';
+  }
+  // Run sequentially because fetchPastScoresFromSheet depends on MEMBERS
+  await fetchMembersFromSheet();
+  await fetchPastScoresFromSheet();
+  if (loginBtn) {
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'ログイン';
+  }
 });
 
 function handleLogin() {
@@ -117,6 +239,18 @@ function handleLogin() {
   
   document.getElementById('login-modal').style.display = 'none';
   
+  // Save login history to GAS
+  if (GAS_WEB_APP_URL !== "YOUR_GAS_WEB_APP_URL_HERE") {
+    fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'logLogin',
+        squadNumber: member.id,
+        name: member.name
+      })
+    }).catch(e => console.error("Failed to log login to GAS", e));
+  }
+  
   _updateSidebarProfile();
   _initGlobalFilters();
   _initScorecardSelect();
@@ -126,8 +260,9 @@ function handleLogin() {
   _syncChigiriToUI();
   renderTab('dashboard');
 
+  // Chigiri modal popup enabled as a global announcement
   setTimeout(() => {
-    openChigiriModal(false);
+    openChigiriModal();
   }, 100);
 }
 
@@ -876,75 +1011,63 @@ function switchUser() {
 
 // 3. GROW Reflection
 function openGrowModal() {
-  const grow = loadGrowReflection(currentUser.id, selectedMonth);
+  // Load from member data (fetched from sheet)
+  const grow = currentUser.grow || { reality: '', options: '', will: '' };
   document.getElementById('grow-reality').value = grow.reality;
   document.getElementById('grow-options').value = grow.options;
   document.getElementById('grow-will').value = grow.will;
   openModal('grow-modal');
 }
 
-function saveGrowReflection() {
+async function saveGrowReflection() {
   const reality = document.getElementById('grow-reality').value;
   const options = document.getElementById('grow-options').value;
   const will    = document.getElementById('grow-will').value;
-  saveGrowReflectionToStorage(currentUser.id, selectedMonth, reality, options, will);
+  
+  // Update local state immediately
+  if (!currentUser.grow) currentUser.grow = {};
+  currentUser.grow.reality = reality;
+  currentUser.grow.options = options;
+  currentUser.grow.will = will;
+
+  if (GAS_WEB_APP_URL !== "YOUR_GAS_WEB_APP_URL_HERE") {
+    try {
+      const btn = document.querySelector('#grow-modal .btn-primary');
+      const originalText = btn.textContent;
+      btn.textContent = '保存中...';
+      btn.disabled = true;
+      
+      await fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'saveGrow',
+          squadNumber: currentUser.id,
+          reality: reality,
+          options: options,
+          will: will
+        })
+      });
+      
+      btn.textContent = originalText;
+      btn.disabled = false;
+    } catch(e) {
+      console.error("Failed to save GROW reflection", e);
+    }
+  }
+
   closeModal('grow-modal');
-  showToast('🌱 振り返りを保存しました！');
-  switchTab('scoring'); // Prompt them to score others next
+  showToast('🌱 振り返りをスプレッドシートに保存しました！');
 }
 
-// Ensure the helper function name matches what we call here since we used saveGrowReflection for the storage one in data.js
-function saveGrowReflectionToStorage(userId, month, reality, options, will) {
-  // It's already defined globally in data.js as saveGrowReflection.
-  // Wait, I named it saveGrowReflection in data.js. I should call the one from data.js.
-  // To avoid naming collision, I'll use window.saveGrowReflection if it's there.
-  window.saveGrowReflection(userId, month, reality, options, will);
-}
-
-// 4. Chigiri Modal
-function openChigiriModal(isUpdate = false) {
-  const chigiri = loadChigiri(currentUser.id);
-  document.getElementById('chigiri-input').value = chigiri.text;
-  
-  const inputMode = document.getElementById('chigiri-input-mode');
-  const displayMode = document.getElementById('chigiri-display-mode');
-  const titleText = document.getElementById('chigiri-title-text');
-  const descText = document.getElementById('chigiri-desc-text');
-  const displayText = document.getElementById('chigiri-display-text');
-  
-  if (isUpdate || !chigiri.text) {
-    inputMode.style.display = 'block';
-    displayMode.style.display = 'none';
-    titleText.textContent = isUpdate ? "契りの更新だな？" : "おい、待てよ！";
-    descText.innerHTML = isUpdate 
-      ? "今の<strong style='color:var(--accent-amber);'>「契り」</strong>をどう変える？"
-      : "ダッシュボードを見る前に、今後の<strong style='color:var(--accent-amber);'>「契り（Chigiri）」</strong>を立てろ！<br>成長の機会を逃すな！";
-  } else {
-    inputMode.style.display = 'none';
-    displayMode.style.display = 'block';
-    titleText.textContent = "今日の契り";
-    descText.innerHTML = "あなたが立てた<strong style='color:var(--accent-amber);'>「契り」</strong>を再確認しろ！";
-    displayText.textContent = chigiri.text;
-  }
-  
+// 4. Chigiri Modal (Global Announcement)
+function openChigiriModal() {
   openModal('chigiri-modal');
-}
-
-function submitChigiri() {
-  const text = document.getElementById('chigiri-input').value.trim();
-  if (!text) {
-    showToast('⚠️ 契りを入力しろ！', 'error');
-    return;
-  }
-  saveChigiri(currentUser.id, text);
-  _syncChigiriToUI();
-  closeModal('chigiri-modal');
-  showToast('🔥 契りを立てた！ 今日も頑張ろう！');
 }
 
 function skipChigiri() {
   closeModal('chigiri-modal');
 }
+
 
 /* ─────────────────────────────────────────
    TOAST

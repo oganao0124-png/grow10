@@ -831,6 +831,165 @@ h2 {
 
 h3 { font-family: var(--font-header); }
 
+.chigiri-modal-content {
+  background: linear-gradient(180deg, #1e1b4b 0%, #0d0f1a 100%);
+  border: 2px solid var(--accent-amber);
+  border-radius: 24px;
+  padding: 3rem 2rem;
+  width: 90%;
+  max-width: 480px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(251, 191, 36, 0.15), inset 0 0 0 1px rgba(255,255,255,0.05);
+  transform: scale(0.95);
+  animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  margin: 0 auto;
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%) scale(0.95);
+}
+.chigiri-overlay.open .chigiri-modal-content {
+  animation: popInAndCenter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes popInAndCenter {
+  0%   { opacity: 0; transform: translateY(-30%) scale(0.9); }
+  60%  { opacity: 1; transform: translateY(-50%) scale(1.05); }
+  100% { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+.chigiri-mascot {
+  font-size: 5rem;
+  margin-bottom: 1rem;
+  animation: float 3s ease-in-out infinite;
+}
+.chigiri-title {
+  font-family: var(--font-header);
+  font-size: 2.2rem;
+  color: #fff;
+  margin-bottom: 10px;
+}
+.chigiri-desc {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+.chigiri-input {
+  width: 100%;
+  padding: 16px;
+  font-size: 1.1rem;
+  background: rgba(0,0,0,0.3);
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  color: #fff;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+.chigiri-input:focus {
+  outline: none;
+  border-color: var(--accent-amber);
+  box-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
+}
+.chigiri-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  border-radius: 12px;
+  background: var(--accent-amber);
+  color: #000;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3);
+}
+.chigiri-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(251, 191, 36, 0.4);
+}
+.chigiri-skip-btn {
+  margin-top: 1.5rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 10px;
+}
+.chigiri-skip-btn:hover { color: var(--text-secondary); }
+
+/* ════════════════════════════════════════
+   RESPONSIVE (MOBILE)
+════════════════════════════════════════ */
+@media (max-width: 768px) {
+  aside {
+    width: 100%;
+    height: auto;
+    position: static;
+    flex-direction: column;
+    padding: 10px;
+  }
+  .nav-links {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .nav-item {
+    flex: 1 1 45%;
+  }
+  .nav-item button {
+    padding: 8px;
+    font-size: 0.8rem;
+    justify-content: center;
+  }
+  main {
+    margin-left: 0;
+  }
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 1rem;
+  }
+  .header-controls {
+    width: 100%;
+    flex-direction: column;
+  }
+  .content-body {
+    padding: 1rem;
+  }
+  .grid-dashboard, .grid-2, .grid-3 {
+    grid-template-columns: 1fr;
+  }
+  .select-wrapper {
+    width: 100%;
+  }
+  .kpi-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .member-profile-card {
+    flex-direction: column;
+    text-align: center;
+  }
+  .member-name-row {
+    justify-content: center;
+  }
+  .modal-content, .chigiri-modal-content {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-container {
+    grid-template-columns: 1fr;
+  }
+  .nav-item {
+    flex: 1 1 100%;
+  }
+}
+
 a { color: var(--accent-indigo); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
@@ -923,15 +1082,9 @@ a:hover { text-decoration: underline; }
   border-radius: 24px;
   padding: 3rem 2rem;
   width: 90%;
-  max-width: 480px;
-  text-align: center;
-  box-shadow: 0 20px 50px rgba(251, 191, 36, 0.15), inset 0 0 0 1px rgba(255,255,255,0.05);
-  transform: scale(0.95);
-  animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  margin: 0 auto;
-  position: relative;
-  top: 50%;
-  transform: translateY(-50%) scale(0.95);
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 .chigiri-overlay.open .chigiri-modal-content {
   animation: popInAndCenter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
