@@ -243,6 +243,10 @@ function handleLogin() {
   if (GAS_WEB_APP_URL !== "YOUR_GAS_WEB_APP_URL_HERE") {
     fetch(GAS_WEB_APP_URL, {
       method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'text/plain',
+      },
       body: JSON.stringify({
         action: 'logLogin',
         squadNumber: member.id,
@@ -1039,6 +1043,10 @@ async function saveGrowReflection() {
       
       await fetch(GAS_WEB_APP_URL, {
         method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'text/plain',
+        },
         body: JSON.stringify({
           action: 'saveGrow',
           squadNumber: currentUser.id,

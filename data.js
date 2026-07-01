@@ -88,6 +88,10 @@ async function saveGoal(userId, month, text, progress) {
   try {
     await fetch(GAS_WEB_APP_URL, {
       method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'text/plain',
+      },
       body: JSON.stringify({
         action: 'saveGoal',
         squadNumber: userId,
