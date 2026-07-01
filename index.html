@@ -96,11 +96,21 @@
           <!-- Monthly Goal Card -->
           <div class="card" style="display: flex; flex-direction: column;">
             <h2 class="card-title" style="font-size: 1.5rem;">🎯 今月の個人目標</h2>
-            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">
-              今月取り組む目標を設定しましょう。
-            </p>
-            <textarea id="monthly-goal-text" class="goal-input-area" placeholder="今月取り組む目標を入力してください..." style="flex: 1; min-height: 200px; font-size: 1.5rem; padding: 20px; line-height: 1.5;"></textarea>
-            <button class="btn-primary" style="width: 100%; margin-top: 1rem; padding: 16px; font-size: 1.2rem;" onclick="saveMonthlyGoal()">💾 目標を保存</button>
+            
+            <div id="dash-goal-display" style="font-size: 1.2rem; font-weight: bold; color: var(--text-primary); white-space: pre-wrap; margin: 15px 0; line-height: 1.5; padding: 20px; background: rgba(255,255,255,0.03); border-radius: 8px; flex: 1;">--</div>
+            
+            <div id="dash-goal-edit-section" style="display: none; flex-direction: column; flex: 1;">
+              <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">今月取り組む目標を設定しましょう。</p>
+              <textarea id="monthly-goal-text" class="goal-input-area" placeholder="今月取り組む目標を入力してください..." style="flex: 1; min-height: 150px; font-size: 1.2rem; padding: 15px; line-height: 1.5; margin-bottom: 10px;"></textarea>
+              <div style="display: flex; gap: 10px;">
+                <button class="btn-secondary" style="flex: 1; padding: 12px;" onclick="document.getElementById('dash-goal-edit-section').style.display='none'; document.getElementById('dash-goal-display-section').style.display='block';">キャンセル</button>
+                <button class="btn-primary" style="flex: 1; padding: 12px;" onclick="saveMonthlyGoal()">💾 保存</button>
+              </div>
+            </div>
+
+            <div id="dash-goal-display-section" style="margin-top: auto;">
+              <button class="btn-secondary" style="width: 100%; padding: 12px; font-size: 1.05rem;" onclick="document.getElementById('dash-goal-display-section').style.display='none'; document.getElementById('dash-goal-edit-section').style.display='flex';">✏️ 目標を編集する</button>
+            </div>
           </div>
         </div>
 
@@ -114,7 +124,12 @@
               <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
                 目標に対して定期的に振り返り(GROWモデル)を行いましょう。
               </p>
-              <button class="btn-secondary" style="width: 100%; padding: 12px; font-size: 1.05rem;" onclick="openGrowModal()">🌱 振り返る(GROW)</button>
+              <div id="dash-grow-display" style="font-size: 0.85rem; color: var(--text-primary); margin-bottom: 12px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; line-height: 1.4; display: flex; flex-direction: column; gap: 8px;">
+                <div><strong style="color: var(--accent-cyan);">G/R (現状):</strong> <span id="dash-grow-reality">--</span></div>
+                <div><strong style="color: var(--accent-amber);">O (課題):</strong> <span id="dash-grow-options">--</span></div>
+                <div><strong style="color: var(--accent-rose);">W (アクション):</strong> <span id="dash-grow-will">--</span></div>
+              </div>
+              <button class="btn-secondary" style="width: 100%; padding: 12px; font-size: 1.05rem;" onclick="openGrowModal()">🌱 振り返りを編集する</button>
             </div>
           </div>
 
@@ -158,6 +173,7 @@
             </div>
           </div>
         </div>
+
         <div class="grid-3" style="margin-bottom: 1.5rem;">
           <div class="card" style="height: 380px;">
             <h3 class="card-title">🕸️ レーダーチャート</h3>

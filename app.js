@@ -104,9 +104,9 @@ async function fetchMembersFromSheet() {
     console.warn("GAS_WEB_APP_URL is not set. Please set the deployed Web App URL.");
     return;
   }
-  const url = GAS_WEB_APP_URL + '?action=getMembers';
   try {
-    const res = await fetch(url);
+    const url = GAS_WEB_APP_URL + '?action=getMembers&t=' + new Date().getTime();
+    const res = await fetch(url, { cache: 'no-store' });
     const json = await res.json();
     if (json.status !== 'success') throw new Error(json.message);
     
@@ -262,7 +262,7 @@ function handleLogin() {
   _initScoringForm();
   _syncGoalToUI();
   _syncChigiriToUI();
-  renderTab('dashboard');
+  switchTab('dashboard');
 
   // Chigiri modal popup enabled as a global announcement
   setTimeout(() => {
@@ -318,6 +318,13 @@ function switchTab(id) {
   };
   document.getElementById('page-title').textContent = TITLES[id] || id;
   currentTab = id;
+  
+  if (id === 'scorecard' && currentUser) {
+    selectedScorecard = currentUser.id;
+    const scSelect = document.getElementById('scorecard-member-select');
+    if (scSelect) scSelect.value = currentUser.id;
+  }
+  
   renderTab(id);
 }
 
@@ -334,7 +341,20 @@ function renderTab(id) {
 /* ═══════════════════════════════════════
    TAB 1 — DASHBOARD
 ═══════════════════════════════════════ */
+function _syncGrowDashboardToUI() {
+  const grow = currentUser.grow || { reality: '', options: '', will: '' };
+  const relEl = document.getElementById('dash-grow-reality');
+  const optEl = document.getElementById('dash-grow-options');
+  const willEl = document.getElementById('dash-grow-will');
+  if (relEl) relEl.textContent = grow.reality || '未記入';
+  if (optEl) optEl.textContent = grow.options || '未記入';
+  if (willEl) willEl.textContent = grow.will || '未記入';
+}
+
 function _renderDashboard() {
+  _syncGoalToUI();
+  _syncChigiriToUI();
+  _syncGrowDashboardToUI();
   const userScores = getAggregatedScores(currentUser.id, selectedMonth);
   const groupAvg   = getGroupAverages(selectedMonth);
   const radarVals  = userScores ? Object.values(userScores) : Array(10).fill(5);
@@ -414,9 +434,11 @@ function _syncGoalToUI() {
   const ta   = document.getElementById('monthly-goal-text');
   const sl   = document.getElementById('goal-progress-slider');
   const lbl  = document.getElementById('progress-val');
+  const disp = document.getElementById('dash-goal-display');
   if (ta)  ta.value  = goal.text;
   if (sl)  sl.value  = goal.progress;
   if (lbl) lbl.textContent = goal.progress + '%';
+  if (disp) disp.textContent = goal.text || 'まだ目標が設定されていません。';
 }
 
 function updateProgressLabel(val) {
@@ -429,6 +451,15 @@ function saveMonthlyGoal() {
   const slider   = document.getElementById('goal-progress-slider');
   const progress = slider ? parseInt(slider.value) : 0;
   saveGoal(currentUser.id, selectedMonth, text, progress);
+  
+  const disp = document.getElementById('dash-goal-display');
+  if (disp) disp.textContent = text || 'まだ目標が設定されていません。';
+  
+  const editSec = document.getElementById('dash-goal-edit-section');
+  const dispSec = document.getElementById('dash-goal-display-section');
+  if (editSec) editSec.style.display = 'none';
+  if (dispSec) dispSec.style.display = 'block';
+  
   showToast('💾 目標を保存しました！');
 }
 
@@ -456,7 +487,11 @@ function _initScorecardSelect() {
     html += `</optgroup>`;
   });
   select.innerHTML = html;
-  selectedScorecard = MEMBERS[0].id;
+  if (selectedScorecard) {
+    select.value = selectedScorecard;
+  } else {
+    selectedScorecard = MEMBERS[0].id;
+  }
 }
 
 function onScorecardMemberChange() {
@@ -1006,6 +1041,9 @@ function switchUser() {
   const user = MEMBERS.find(m => m.id === id);
   if (user) {
     currentUser = user;
+    selectedScorecard = user.id;
+    const scSelect = document.getElementById('scorecard-member-select');
+    if (scSelect) scSelect.value = user.id;
     _updateSidebarProfile();
     closeModal('user-switcher-modal');
     renderTab(currentTab); // refresh current view
